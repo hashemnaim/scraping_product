@@ -16,6 +16,3 @@ dev = [
     "playwright>=1.40.0",
     "pytest>=8.0.0",
 ]
-
-[tool.vercel]
-entrypoint = "asgi:app"

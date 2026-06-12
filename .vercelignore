@@ -1,0 +1,7 @@
+.venv
+.pytest_cache
+tests
+output
+specs
+__pycache__
+*.pyc

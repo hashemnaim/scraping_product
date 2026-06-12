@@ -2,6 +2,14 @@
 name = "scraping-product"
 version = "0.1.0"
 requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.53.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "openpyxl>=3.1.0",
+    "lxml>=5.0.0",
+    "Pillow>=10.0.0",
+]
 
 [tool.vercel]
 entrypoint = "api.index:app"

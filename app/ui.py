@@ -24,7 +24,7 @@ st.set_page_config(
     page_title="تصدير المنتجات",
     page_icon="🛒",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 st.markdown(
@@ -263,6 +263,18 @@ st.markdown(
         border: 1px solid var(--border);
     }
 
+    /* إخفاء الشريط الجانبي وزر فتحه */
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"] {
+        display: none !important;
+    }
+    section.main .block-container {
+        max-width: 1180px;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
     /* إخفاء شريط streamlit العلوي الافتراضي إن أمكن */
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
@@ -275,6 +287,17 @@ if "progress_log" not in st.session_state:
     st.session_state.progress_log = []
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
+
+_DEFAULT_MODULE_ID = 3  # سوبر ماركت
+
+
+def _modules_default_first(modules: list) -> list:
+    preferred = [m for m in modules if m.module_id == _DEFAULT_MODULE_ID]
+    others = sorted(
+        (m for m in modules if m.module_id != _DEFAULT_MODULE_ID),
+        key=lambda m: m.module_id,
+    )
+    return preferred + others
 
 
 def _progress_log(phase: str, current: int, total: int, message: str):
@@ -362,15 +385,16 @@ col_cat, col_scrape = st.columns([1, 1], gap="large")
 with col_cat:
     st.markdown('<div class="panel-title">🏷️ الموديل والتصنيف</div>', unsafe_allow_html=True)
 
-    modules = catalog.list_modules()
+    modules = _modules_default_first(catalog.list_modules())
     if not modules:
-        st.warning("لا توجد موديلات — ارفع `modules.xlsx` من اللوحة الجانبية")
+        st.warning("لا توجد موديلات — تأكد من وجود `catalog/modules.xlsx`")
         st.stop()
 
     module_labels = {m.module_id: m.name_ar for m in modules}
     module_id = st.selectbox(
         "الموديل",
         options=[m.module_id for m in modules],
+        index=0,
         format_func=lambda mid: f"{mid} — {module_labels[mid]}",
     )
 
@@ -424,7 +448,7 @@ with col_cat:
             )
     else:
         st.error(
-            f"لا توجد وحدات للموديل {module_id} — ارفع `units.xlsx` من اللوحة الجانبية "
+            f"لا توجد وحدات للموديل {module_id} — تأكد من وجود `catalog/units.xlsx` "
             f"(عمود ModuleId = {module_id})"
         )
 

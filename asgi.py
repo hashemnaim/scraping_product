@@ -1,5 +1,9 @@
 """Vercel ASGI entrypoint for the Streamlit UI."""
 
+from pathlib import Path
+
 from streamlit.starlette import App
 
-app = App("app/ui.py")
+_UI_SCRIPT = Path(__file__).resolve().parent / "app" / "ui.py"
+
+app = App(_UI_SCRIPT)

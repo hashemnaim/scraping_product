@@ -137,7 +137,7 @@ def build_units(data: dict) -> None:
         ws.cell(row, 1, item["module_id"])
         ws.cell(row, 2, item["id"])
         ws.cell(row, 3, item.get("unit", ""))
-        ws.cell(row, 4, "")
+        ws.cell(row, 4, item.get("aliases", ""))
     wb.save(CATALOG / "units.xlsx")
 
 

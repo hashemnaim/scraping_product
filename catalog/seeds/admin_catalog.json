@@ -41,38 +41,46 @@
       "status": 1
     }
   ],
+  
   "units": [
     {
       "id": 7,
       "module_id": 3,
-      "unit": "قطعه"
+      "unit": "قطعه",
+      "aliases": "piece,pieces,pc,pcs,قطعة,حبة,بالقطعة"
     },
     {
       "id": 9,
       "module_id": 3,
-      "unit": "كيلو"
+      "unit": "كيلو",
+      "aliases": "kg,kilo,kilogram,كجم,كيلو"
     },
     {
       "id": 10,
       "module_id": 3,
-      "unit": "غرام"
+      "unit": "غرام",
+      "aliases": "g,gram,grams,gr,جم,غرام"
     },
     {
       "id": 11,
       "module_id": 3,
-      "unit": "فرط"
+      "unit": "فرط",
+      "aliases": "فرط,bunch"
     },
     {
       "id": 13,
       "module_id": 3,
-      "unit": "حزمة"
+      "unit": "حزمة",
+      "aliases": "حزمة,pack,bundle"
     },
     {
       "id": 14,
       "module_id": 3,
-      "unit": "ml"
+      "unit": "ml",
+      "aliases": "ml,مل,milliliter,millilitre"
     }
   ],
+
   "categories": [
     {
       "id": 235,
@@ -195,6 +203,7 @@
       "slug": "aasayr-tbyaah"
     }
   ],
+
   "subcategories": [
     {
       "id": 187,

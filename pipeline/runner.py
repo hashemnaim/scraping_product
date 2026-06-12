@@ -10,7 +10,9 @@ from typing import Callable
 import requests
 
 from pipeline import catalog, exporter, id_state, images
-from pipeline.catalog import get_module, get_subcategory, make_run_key, require_units
+from pipeline.catalog import get_module, get_subcategory, get_units, list_categories, make_run_key, require_units
+from pipeline.tags import build_search_tags
+from pipeline.units_matcher import match_unit
 from pipeline.errors import SCRAPE_FAILED, PipelineError
 from pipeline.scrape.detector import scrape_category
 
@@ -59,6 +61,12 @@ def run_category_job(
     sub = get_subcategory(request.module_id, request.category_id, request.sub_category_id)
     require_units(request.module_id)
     module = get_module(request.module_id)
+    module_units = get_units(request.module_id)
+    category_name = ""
+    for category in list_categories(request.module_id):
+        if category.category_id == request.category_id:
+            category_name = category.name_ar
+            break
 
     run_key = make_run_key(request.module_id, request.category_id, request.sub_category_id)
     output_base = PROJECT_ROOT / request.output_dir / sub.output_slug
@@ -121,7 +129,17 @@ def run_category_job(
             product["image_ok"] = False
 
         product["image_path"] = rel_path
-        product["tags"] = product.get("category", "")
+        product["tags"] = build_search_tags(
+            product_name=product.get("name", ""),
+            category_name=category_name,
+            subcategory_name=sub.name_ar,
+            source_category=product.get("category", ""),
+        )
+        unit_id, quantity_unit = match_unit(product.get("name", ""), module_units)
+        if unit_id is not None:
+            product["unit_id"] = unit_id
+        if quantity_unit is not None:
+            product["quantity_unit"] = quantity_unit
         rows.append(
             exporter.build_row(
                 product_id,

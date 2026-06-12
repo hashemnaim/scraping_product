@@ -3,5 +3,11 @@
 tests
 output
 specs
+scripts
+data
 __pycache__
 *.pyc
+requirements-dev.txt
+scraper.py
+update_fruits_excel.py
+run_ui.sh

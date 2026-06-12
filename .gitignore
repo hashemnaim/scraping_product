@@ -7,3 +7,6 @@ output/
 data/global_state.json
 # catalog/*.xlsx — يُحرَّر من المستخدم ويُرفع مع المشروع
 *_images_removed/
+.vercel
+uv.lock
+_uv/

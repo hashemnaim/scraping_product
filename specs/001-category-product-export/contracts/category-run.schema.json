@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "category-run.schema.json",
+  "title": "CategoryRunRequest",
+  "type": "object",
+  "required": [
+    "module_id",
+    "category_id",
+    "sub_category_id",
+    "source_url",
+    "output_dir",
+    "excel_filename",
+    "images_folder"
+  ],
+  "properties": {
+    "module_id": { "type": "integer", "minimum": 1, "maximum": 6 },
+    "category_id": { "type": "integer", "minimum": 1 },
+    "sub_category_id": { "type": "integer", "minimum": 1 },
+    "source_url": { "type": "string", "format": "uri" },
+    "output_dir": { "type": "string", "minLength": 1 },
+    "excel_filename": { "type": "string", "minLength": 1 },
+    "images_folder": { "type": "string", "minLength": 1 },
+    "max_pages": { "type": "integer", "minimum": 0, "default": 0 },
+    "start_page": { "type": "integer", "minimum": 1, "default": 1 },
+    "rescrape": { "type": "boolean", "default": false }
+  }
+}

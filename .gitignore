@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+output/
+data/global_state.json
+# catalog/*.xlsx — يُحرَّر من المستخدم ويُرفع مع المشروع
+*_images_removed/

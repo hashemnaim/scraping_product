@@ -1,0 +1,536 @@
+{
+  "modules": [
+    {
+      "id": 1,
+      "module_name": "خضروات وفواكه",
+      "status": 1
+    },
+    {
+      "id": 2,
+      "module_name": "تجارة الكترونية",
+      "status": 1
+    },
+    {
+      "id": 3,
+      "module_name": "سوبر ماركت",
+      "status": 1
+    },
+    {
+      "id": 4,
+      "module_name": "مطاعم",
+      "status": 1
+    },
+    {
+      "id": 5,
+      "module_name": "صيدلية",
+      "status": 1
+    },
+    {
+      "id": 6,
+      "module_name": "ملابس",
+      "status": 1
+    },
+    {
+      "id": 7,
+      "module_name": "عطارة",
+      "status": 1
+    },
+    {
+      "id": 8,
+      "module_name": "مكتبة",
+      "status": 1
+    }
+  ],
+  "units": [
+    {
+      "id": 7,
+      "module_id": 3,
+      "unit": "قطعه"
+    },
+    {
+      "id": 9,
+      "module_id": 3,
+      "unit": "كيلو"
+    },
+    {
+      "id": 10,
+      "module_id": 3,
+      "unit": "غرام"
+    },
+    {
+      "id": 11,
+      "module_id": 3,
+      "unit": "فرط"
+    },
+    {
+      "id": 13,
+      "module_id": 3,
+      "unit": "حزمة"
+    },
+    {
+      "id": 14,
+      "module_id": 3,
+      "unit": "ml"
+    }
+  ],
+  "categories": [
+    {
+      "id": 235,
+      "name": "أجهزة ألكترونية",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 236,
+      "name": "أعشاب و بهارات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 237,
+      "name": "الألبان , البيض والجبنة",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 238,
+      "name": "الغسيل و المنظفات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 239,
+      "name": "العناية بالطفل",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 240,
+      "name": "المزيد",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 241,
+      "name": "العناية الشخصية",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 242,
+      "name": "أيس كريم",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 243,
+      "name": "الفواكه والخضروات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 244,
+      "name": "سناكس و شيكولاته",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 245,
+      "name": "المخبوزات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 246,
+      "name": "المشروبات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 247,
+      "name": "منتجات مجمدة ومبردة",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 248,
+      "name": "البقالة والمواد الجافة",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 249,
+      "name": "أدوات منزلية ومطبخ",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 250,
+      "name": "مستلزمات الحيوانات",
+      "module_id": 3,
+      "slug": null
+    },
+    {
+      "id": 252,
+      "name": "خضروات",
+      "module_id": 1,
+      "slug": "khdroat"
+    },
+    {
+      "id": 253,
+      "name": "فاكهة",
+      "module_id": 1,
+      "slug": "fakh"
+    },
+    {
+      "id": 254,
+      "name": "خضروات جاهزة",
+      "module_id": 1,
+      "slug": "khdroat-gahz"
+    },
+    {
+      "id": 255,
+      "name": "عصائر طبيعه",
+      "module_id": 1,
+      "slug": "aasayr-tbyaah"
+    }
+  ],
+  "subcategories": [
+    {
+      "id": 187,
+      "name": "أدوات مطبخ",
+      "parent_id": 249,
+      "module_id": 3,
+      "slug": "adoat-mtbkh187"
+    },
+    {
+      "id": 188,
+      "name": "بطاريات ولمبات",
+      "parent_id": 249,
+      "module_id": 3,
+      "slug": "btaryat-olmbat188"
+    },
+    {
+      "id": 189,
+      "name": "بلاستيك",
+      "parent_id": 249,
+      "module_id": 3,
+      "slug": "blastyk189"
+    },
+    {
+      "id": 190,
+      "name": "اكياس وحفظ طعام",
+      "parent_id": 238,
+      "module_id": 3,
+      "slug": "akyas-ohfth-taaam190"
+    },
+    {
+      "id": 191,
+      "name": "مكونات الطبخ",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "mkonat-altbkh191"
+    },
+    {
+      "id": 192,
+      "name": "معلبات و برطمانات و غيرها",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "maalbat-o-brtmanat-o-ghyrha192"
+    },
+    {
+      "id": 193,
+      "name": "بقوليات",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "bkolyat193"
+    },
+    {
+      "id": 194,
+      "name": "زيوت و سمن",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "zyot-o-smn194"
+    },
+    {
+      "id": 195,
+      "name": "صلصات و مخللات",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "mkhllat195"
+    },
+    {
+      "id": 196,
+      "name": "أرز و مكرونة",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "arz-o-mkron196"
+    },
+    {
+      "id": 197,
+      "name": "دقيق، مستلزمات خبز",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "dkyk-mstlzmat-khbz197"
+    },
+    {
+      "id": 198,
+      "name": "منتجات الفطور الغذائية",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "mntgat-alftor-alghthayy198"
+    },
+    {
+      "id": 199,
+      "name": "بطاطس و مقبلات",
+      "parent_id": 244,
+      "module_id": 3,
+      "slug": "btats-o-mkblat199"
+    },
+    {
+      "id": 200,
+      "name": "خضار مجمد",
+      "parent_id": 247,
+      "module_id": 3,
+      "slug": "khdar-mgmd200"
+    },
+    {
+      "id": 201,
+      "name": "بيتزا و فطائر",
+      "parent_id": 247,
+      "module_id": 3,
+      "slug": "bytza-o-ftayr201"
+    },
+    {
+      "id": 202,
+      "name": "وجبات جاهزة",
+      "parent_id": 247,
+      "module_id": 3,
+      "slug": "ogbat-gahz202"
+    },
+    {
+      "id": 203,
+      "name": "مشروبات غازيه",
+      "parent_id": 246,
+      "module_id": 3,
+      "slug": "mshrobat-ghazyh203"
+    },
+    {
+      "id": 204,
+      "name": "الشاي و القهوة",
+      "parent_id": 246,
+      "module_id": 3,
+      "slug": "alshay-o-alkho204"
+    },
+    {
+      "id": 205,
+      "name": "عصائر",
+      "parent_id": 246,
+      "module_id": 3,
+      "slug": "aasayr205"
+    },
+    {
+      "id": 206,
+      "name": "مياه",
+      "parent_id": 246,
+      "module_id": 3,
+      "slug": "myah206"
+    },
+    {
+      "id": 207,
+      "name": "مشروبات الطاقة",
+      "parent_id": 246,
+      "module_id": 3,
+      "slug": "mshrobat-altak207"
+    },
+    {
+      "id": 208,
+      "name": "توست",
+      "parent_id": 245,
+      "module_id": 3,
+      "slug": "tost208"
+    },
+    {
+      "id": 209,
+      "name": "معجنات",
+      "parent_id": 245,
+      "module_id": 3,
+      "slug": "maagnat209"
+    },
+    {
+      "id": 210,
+      "name": "كيك و حلويات",
+      "parent_id": 245,
+      "module_id": 3,
+      "slug": "kyk-o-hloyat210"
+    },
+    {
+      "id": 211,
+      "name": "شيكولاته",
+      "parent_id": 244,
+      "module_id": 3,
+      "slug": "shykolath211"
+    },
+    {
+      "id": 212,
+      "name": "البسكويت",
+      "parent_id": 244,
+      "module_id": 3,
+      "slug": "albskoyt212"
+    },
+    {
+      "id": 213,
+      "name": "الشيبسي و السناكس",
+      "parent_id": 244,
+      "module_id": 3,
+      "slug": "alshybsy-o-alsnaks213"
+    },
+    {
+      "id": 214,
+      "name": "الحلويات وكعك",
+      "parent_id": 245,
+      "module_id": 3,
+      "slug": "alhloyat-okaak214"
+    },
+    {
+      "id": 215,
+      "name": "المكسرات",
+      "parent_id": 244,
+      "module_id": 3,
+      "slug": "almksrat215"
+    },
+    {
+      "id": 216,
+      "name": "فواكه",
+      "parent_id": 243,
+      "module_id": 3,
+      "slug": "foakh216"
+    },
+    {
+      "id": 217,
+      "name": "خضروات",
+      "parent_id": 243,
+      "module_id": 3,
+      "slug": "khdroat217"
+    },
+    {
+      "id": 218,
+      "name": "تمور",
+      "parent_id": 248,
+      "module_id": 3,
+      "slug": "tmor218"
+    },
+    {
+      "id": 219,
+      "name": "مزيلات العرق",
+      "parent_id": 241,
+      "module_id": 3,
+      "slug": "mzylat-alaark219"
+    },
+    {
+      "id": 220,
+      "name": "العناية بالفم",
+      "parent_id": 241,
+      "module_id": 3,
+      "slug": "alaanay-balfm220"
+    },
+    {
+      "id": 221,
+      "name": "مزيلات عرق",
+      "parent_id": 241,
+      "module_id": 3,
+      "slug": "mzylat-aark221"
+    },
+    {
+      "id": 222,
+      "name": "عناية بالشعر",
+      "parent_id": 241,
+      "module_id": 3,
+      "slug": "aanay-balshaar222"
+    },
+    {
+      "id": 223,
+      "name": "عناية بالبشرة",
+      "parent_id": 241,
+      "module_id": 3,
+      "slug": "aanay-balbshr223"
+    },
+    {
+      "id": 224,
+      "name": "حفاضات",
+      "parent_id": 239,
+      "module_id": 3,
+      "slug": "hfadat224"
+    },
+    {
+      "id": 225,
+      "name": "أكل أطفال",
+      "parent_id": 239,
+      "module_id": 3,
+      "slug": "akl-atfal225"
+    },
+    {
+      "id": 226,
+      "name": "غسيل",
+      "parent_id": 238,
+      "module_id": 3,
+      "slug": "ghsyl226"
+    },
+    {
+      "id": 227,
+      "name": "جلي",
+      "parent_id": 238,
+      "module_id": 3,
+      "slug": "gly227"
+    },
+    {
+      "id": 228,
+      "name": "تنظيف أسطح",
+      "parent_id": 238,
+      "module_id": 3,
+      "slug": "tnthyf-asth228"
+    },
+    {
+      "id": 229,
+      "name": "مناديل ورقيات",
+      "parent_id": 238,
+      "module_id": 3,
+      "slug": "mnadyl-orkyat229"
+    },
+    {
+      "id": 230,
+      "name": "اللبن",
+      "parent_id": 237,
+      "module_id": 3,
+      "slug": "allbn230"
+    },
+    {
+      "id": 231,
+      "name": "زبادي",
+      "parent_id": 237,
+      "module_id": 3,
+      "slug": "zbady231"
+    },
+    {
+      "id": 232,
+      "name": "زبدة و كريمة",
+      "parent_id": 237,
+      "module_id": 3,
+      "slug": "zbd-o-krym232"
+    },
+    {
+      "id": 233,
+      "name": "بيض",
+      "parent_id": 237,
+      "module_id": 3,
+      "slug": "byd233"
+    },
+    {
+      "id": 234,
+      "name": "الجبنة واللبنة",
+      "parent_id": 237,
+      "module_id": 3,
+      "slug": "algbn-oallbn234"
+    }
+  ]
+}

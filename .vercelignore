@@ -2,12 +2,12 @@
 .pytest_cache
 tests
 output
+output_test
 specs
 scripts
-data
 __pycache__
 *.pyc
-requirements-dev.txt
-scraper.py
+.vercel
 update_fruits_excel.py
-run_ui.sh
+scraper.py
+data/global_state.json

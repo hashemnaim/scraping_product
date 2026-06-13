@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -26,6 +27,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+
+@st.cache_resource
+def _warm_playwright_for_instashop() -> bool:
+    from pipeline.scrape.playwright_bootstrap import ensure_playwright_chromium
+
+    ensure_playwright_chromium()
+    return True
+
+
+if os.getenv("USER") == "appuser":
+    try:
+        _warm_playwright_for_instashop()
+    except Exception as exc:
+        st.session_state["_playwright_error"] = str(exc)
 
 st.markdown(
     """
@@ -579,6 +595,13 @@ with st.sidebar:
 catalog_sources = catalog.catalog_sources()
 catalog_ready = sum(1 for fname in CATALOG_FILES if catalog_sources.get(fname, False))
 catalog_total = len(CATALOG_FILES)
+
+if st.session_state.get("_playwright_error"):
+    st.warning(
+        "تعذّر تهيئة متصفح Instashop على السيرفر. "
+        "سيتم إعادة المحاولة عند السحب. "
+        f"({st.session_state['_playwright_error']})"
+    )
 
 st.markdown(
     f"""

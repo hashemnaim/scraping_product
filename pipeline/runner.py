@@ -90,6 +90,7 @@ def run_category_job(
             request.max_pages,
             mode=request.mode,
             on_progress=progress,
+            start_page=request.start_page,
         )
     except Exception as exc:
         raise PipelineError(SCRAPE_FAILED, str(exc)) from exc

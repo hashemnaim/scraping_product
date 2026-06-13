@@ -120,12 +120,13 @@ def scrape_seoudi_category(
     session: requests.Session,
     max_pages: int,
     on_progress=None,
+    start_page: int | None = None,
 ) -> list[dict]:
-    locale, category_path, start_page = parse_seoudi_url(url)
+    locale, category_path, url_start_page = parse_seoudi_url(url)
     base_url = f"https://seoudisupermarket.com/{locale}"
     products = []
     pages_fetched = 0
-    current_page = start_page
+    current_page = start_page if start_page is not None else url_start_page
     total_pages = None
 
     while max_pages == 0 or pages_fetched < max_pages:

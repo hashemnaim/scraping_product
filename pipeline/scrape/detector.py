@@ -33,10 +33,13 @@ def scrape_category(
     max_pages: int,
     mode: str = "auto",
     on_progress=None,
+    start_page: int = 1,
 ) -> list[dict]:
     resolved = detect_mode(url, mode)
     if resolved == "graphql":
-        return seoudi_graphql.scrape_seoudi_category(url, session, max_pages, on_progress)
+        return seoudi_graphql.scrape_seoudi_category(
+            url, session, max_pages, on_progress, start_page=start_page
+        )
     if resolved == "instashop":
         return instashop.scrape_instashop_category(url, on_progress)
     return html_scraper.scrape_html_category(url, session, max_pages, on_progress)

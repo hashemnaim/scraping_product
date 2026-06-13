@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import sys
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -19,7 +20,6 @@ importlib.reload(catalog)
 from pipeline.errors import PipelineError
 from pipeline.runner import CategoryRunRequest, run_category_job
 
-# ── إعداد الصفحة ──────────────────────────────────────────────
 st.set_page_config(
     page_title="تصدير المنتجات",
     page_icon="🛒",
@@ -34,17 +34,22 @@ st.markdown(
 
     :root {
         --bg-white: #ffffff;
-        --bg-soft: #f7f9f8;
+        --bg-soft: #f6faf7;
         --text-dark: #0f1f17;
-        --text-muted: #3d5247;
+        --text-muted: #52685c;
         --green: #0d5c3d;
+        --green-dark: #063d2a;
         --green-light: #e8f5ee;
         --border: #d4e4da;
+        --shadow-sm: 0 8px 22px rgba(13, 92, 61, 0.08);
+        --shadow-md: 0 18px 44px rgba(13, 92, 61, 0.14);
     }
 
     /* ── خلفية بيضاء وتباين عالٍ ── */
     html, body, .stApp, [data-testid="stAppViewContainer"] {
-        background-color: var(--bg-white) !important;
+        background:
+            radial-gradient(circle at top right, rgba(13, 92, 61, 0.10), transparent 34rem),
+            linear-gradient(180deg, #ffffff 0%, #f8fbf9 100%) !important;
         color: var(--text-dark) !important;
         direction: rtl !important;
         text-align: right !important;
@@ -52,9 +57,10 @@ st.markdown(
     }
 
     .block-container {
-        padding-top: 1.25rem;
-        max-width: 1180px;
-        background: var(--bg-white);
+        padding-top: 0.75rem;
+        padding-bottom: 3rem;
+        max-width: 1200px;
+        background: transparent;
     }
 
     /* ── RTL شامل لكل عناصر Streamlit ── */
@@ -81,20 +87,34 @@ st.markdown(
         color: var(--text-dark) !important;
     }
 
-    /* ترتيب الأعمدة: يمين ← يسار */
+    /* ترتيب الأعمدة: أول عنصر في الكود يظهر يميناً مع اتجاه RTL */
     [data-testid="stHorizontalBlock"] {
-        flex-direction: row-reverse !important;
+        flex-direction: row !important;
         gap: 1.5rem;
     }
 
-    /* حقول إدخال بيضاء وحدود واضحة */
+    /* حقول إدخال بيضاء وحدود واضحة ونص ظاهر */
     input, textarea, [data-baseweb="select"] > div,
-    div[data-testid="stNumberInput"] input {
+    div[data-testid="stNumberInput"] input,
+    [data-baseweb="popover"],
+    [role="listbox"],
+    [role="option"] {
         background: var(--bg-white) !important;
         color: var(--text-dark) !important;
         border-color: var(--border) !important;
+        border-radius: 12px !important;
         text-align: right !important;
         direction: rtl !important;
+    }
+    [data-baseweb="select"] *, [data-baseweb="popover"] *,
+    [role="listbox"] *, [role="option"] * {
+        color: var(--text-dark) !important;
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    input::placeholder, textarea::placeholder {
+        color: #789083 !important;
+        opacity: 1 !important;
     }
     label, .stSelectbox label, .stTextInput label {
         color: var(--text-dark) !important;
@@ -103,25 +123,155 @@ st.markdown(
 
     /* الترويسة — أخضر غامق ونص أبيض (تباين عالٍ) */
     .hero {
-        background: linear-gradient(120deg, #064a2f 0%, #0d5c3d 50%, #127a50 100%);
-        border-radius: 14px;
-        padding: 1.6rem 2rem;
-        margin-bottom: 1.25rem;
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 10% 20%, rgba(255,255,255,0.20), transparent 18rem),
+            linear-gradient(135deg, #063d2a 0%, #0d5c3d 48%, #13935f 100%);
+        border-radius: 26px;
+        padding: 2rem;
+        margin-bottom: 1.1rem;
         color: #ffffff !important;
-        box-shadow: 0 6px 20px rgba(6, 74, 47, 0.22);
+        box-shadow: var(--shadow-md);
         text-align: right !important;
         direction: rtl !important;
     }
+    .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -6rem -8rem auto;
+        width: 22rem;
+        height: 22rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.11);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+        gap: 1.5rem;
+        align-items: center;
+    }
+    .hero-badge {
+        display: inline-flex;
+        width: fit-content;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.26);
+        border-radius: 999px;
+        padding: 0.35rem 0.8rem;
+        margin-bottom: 0.8rem;
+        color: #ffffff !important;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
     .hero h1 {
         margin: 0 0 0.3rem 0;
-        font-size: 1.75rem;
+        font-size: clamp(1.8rem, 4vw, 3.1rem);
+        line-height: 1.15;
         font-weight: 800;
         color: #ffffff !important;
     }
     .hero p {
         margin: 0;
         color: #f0fff7 !important;
-        font-size: 0.98rem;
+        font-size: 1rem;
+        line-height: 1.8;
+        max-width: 680px;
+    }
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+    .hero-stat {
+        background: rgba(255,255,255,0.13);
+        border: 1px solid rgba(255,255,255,0.24);
+        border-radius: 18px;
+        padding: 1rem;
+        backdrop-filter: blur(8px);
+    }
+    .hero-stat strong {
+        display: block;
+        color: #ffffff !important;
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+    .hero-stat span {
+        color: #e8fff2 !important;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1.2rem;
+    }
+    .quick-card, .panel-card, .result-card {
+        background: rgba(255,255,255,0.94);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+    .quick-card {
+        padding: 0.9rem 1rem;
+    }
+    .quick-card strong {
+        display: block;
+        color: var(--green-dark) !important;
+        font-size: 0.96rem;
+        margin-bottom: 0.25rem;
+    }
+    .quick-card span {
+        color: var(--text-muted) !important;
+        font-size: 0.82rem;
+    }
+    .panel-card {
+        padding: 1.1rem 1.15rem 1.2rem;
+        margin-bottom: 1rem;
+    }
+    .section-kicker {
+        color: var(--text-muted) !important;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+    .catalog-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin: 0.2rem 0 1rem;
+    }
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border: 1px solid var(--border);
+        background: var(--bg-white);
+        color: var(--text-dark) !important;
+    }
+    .status-chip.ok {
+        background: var(--green-light);
+        color: var(--green-dark) !important;
+        border-color: #b9ddc8;
+    }
+    .status-chip.missing {
+        background: #fff7ed;
+        color: #8a4b05 !important;
+        border-color: #f3d7ae;
+    }
+    @media (max-width: 900px) {
+        .hero-content, .quick-grid {
+            grid-template-columns: 1fr;
+        }
+        .hero-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
     .panel-title {
@@ -157,11 +307,13 @@ st.markdown(
         font-family: 'Tajawal', sans-serif !important;
     }
     .stButton > button[kind="primary"] {
-        background: var(--green) !important;
+        background: linear-gradient(135deg, var(--green-dark), var(--green)) !important;
         color: #ffffff !important;
         border: 2px solid #064a2f !important;
-        border-radius: 10px !important;
+        border-radius: 14px !important;
         font-weight: 700 !important;
+        min-height: 3rem !important;
+        box-shadow: 0 10px 24px rgba(13, 92, 61, 0.18);
     }
     .stButton > button[kind="secondary"] {
         background: var(--bg-white) !important;
@@ -263,6 +415,11 @@ st.markdown(
         border: 1px solid var(--border);
     }
 
+    .result-card {
+        padding: 1.15rem;
+        margin-top: 1rem;
+    }
+
     /* إخفاء الشريط الجانبي وزر فتحه */
     section[data-testid="stSidebar"],
     [data-testid="stSidebarCollapsedControl"],
@@ -275,9 +432,52 @@ st.markdown(
         padding-right: 2rem;
     }
 
-    /* إخفاء شريط streamlit العلوي الافتراضي إن أمكن */
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
+    /* إخفاء شريط Streamlit العلوي والقائمة السوداء */
+    header[data-testid="stHeader"],
+    .stApp > header,
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"],
+    #MainMenu,
+    footer {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+    }
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 0 !important;
+    }
+
+    /* ── شبكة أمان للتباين: لا نص فاتح على خلفية فاتحة ولا داكن على داكن ── */
+    .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stRadio"] label, [data-testid="stCheckbox"] label,
+    [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] * {
+        color: var(--text-dark);
+    }
+    /* الجداول و JSON على خلفية بيضاء بنص داكن */
+    [data-testid="stDataFrame"], [data-testid="stDataFrame"] *,
+    [data-testid="stJson"], [data-testid="stJson"] *,
+    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+        color: var(--text-dark) !important;
+    }
+    [data-testid="stExpander"] {
+        background: var(--bg-white) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 12px;
+    }
+    /* عناصر النص الداكنة المقصودة تحتفظ بنصها الفاتح */
+    .hero, .hero *, .log-box, .log-box *,
+    .stButton > button[kind="primary"],
+    [data-testid="stFileUploader"] button,
+    [data-testid="stFileUploaderDropzone"] button {
+        color: #ffffff !important;
+    }
+    .stButton > button[kind="primary"] * {
+        color: #ffffff !important;
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -298,6 +498,13 @@ def _modules_default_first(modules: list) -> list:
         key=lambda m: m.module_id,
     )
     return preferred + others
+
+
+def _page_from_url(url: str) -> int:
+    try:
+        return max(1, int(parse_qs(urlparse(url).query).get("page", ["1"])[0]))
+    except (ValueError, TypeError):
+        return 1
 
 
 def _progress_log(phase: str, current: int, total: int, message: str):
@@ -369,20 +576,59 @@ with st.sidebar:
     st.caption("معرفات عالمية متصلة عبر التصنيفات")
 
 # ── الترويسة ──────────────────────────────────────────────────
+catalog_sources = catalog.catalog_sources()
+catalog_ready = sum(1 for fname in CATALOG_FILES if catalog_sources.get(fname, False))
+catalog_total = len(CATALOG_FILES)
+
 st.markdown(
-    """
+    f"""
 <div class="hero">
-  <h1>🛒 نظام تصدير المنتجات</h1>
-  <p>سحب تصنيفاً بتصنيف — Excel جاهز للاستيراد + صور WebP مضغوطة</p>
+  <div class="hero-content">
+    <div>
+      <div class="hero-badge">لوحة تحكم المنتج</div>
+      <h1>نظام تصدير المنتجات الذكي</h1>
+      <p>اختر الموديل والتصنيف، ضع رابط المصدر، ودع النظام يجلب المنتجات والصور ويجهز ملف Excel للاستيراد.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong>{catalog_ready}/{catalog_total}</strong><span>ملفات كتالوج جاهزة</span></div>
+      <div class="hero-stat"><strong>WebP</strong><span>صور مضغوطة</span></div>
+      <div class="hero-stat"><strong>Auto</strong><span>بجنيشن تلقائي</span></div>
+      <div class="hero-stat"><strong>RTL</strong><span>واجهة عربية</span></div>
+    </div>
+  </div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-# العمود الأول في الكود = يمين الشاشة (مع row-reverse)
+catalog_chips = []
+for fname, label in CATALOG_FILES.items():
+    ok = catalog_sources.get(fname, False)
+    cls = "ok" if ok else "missing"
+    icon = "✓" if ok else "!"
+    catalog_chips.append(f'<span class="status-chip {cls}">{icon} {label}</span>')
+
+st.markdown(
+    f"""
+<div class="quick-grid">
+  <div class="quick-card"><strong>1. اختر التصنيف</strong><span>سوبر ماركت يظهر أولاً بشكل افتراضي.</span></div>
+  <div class="quick-card"><strong>2. أدخل الرابط</strong><span>يدعم صفحة واحدة أو كل البجنيشن.</span></div>
+  <div class="quick-card"><strong>3. شغّل السحب</strong><span>يتم تنزيل الصور وبناء Excel تلقائياً.</span></div>
+  <div class="quick-card"><strong>4. راجع النتيجة</strong><span>ملف جاهز ومسارات الصور تظهر أسفل الصفحة.</span></div>
+</div>
+<div class="panel-card">
+  <div class="section-kicker">جاهزية ملفات الكتالوج</div>
+  <div class="catalog-strip">{''.join(catalog_chips)}</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+# العمود الأول في الكود = يمين الشاشة بسبب اتجاه RTL العام
 col_cat, col_scrape = st.columns([1, 1], gap="large")
 
 with col_cat:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">🏷️ الموديل والتصنيف</div>', unsafe_allow_html=True)
 
     modules = _modules_default_first(catalog.list_modules())
@@ -451,18 +697,51 @@ with col_cat:
             f"لا توجد وحدات للموديل {module_id} — تأكد من وجود `catalog/units.xlsx` "
             f"(عمود ModuleId = {module_id})"
         )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col_scrape:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">⚙️ إعدادات السحب</div>', unsafe_allow_html=True)
 
     source_url = st.text_input("🔗 رابط المصدر", value=sub.default_source_url)
+
+    scrape_scope = st.radio(
+        "نطاق الصفحات",
+        options=["all", "single"],
+        format_func=lambda v: (
+            "كل المنتجات — يتابع البجنيشن تلقائياً"
+            if v == "all"
+            else "صفحة واحدة فقط"
+        ),
+        horizontal=True,
+    )
+
+    if scrape_scope == "single":
+        page_number = st.number_input(
+            "رقم الصفحة",
+            min_value=1,
+            value=_page_from_url(source_url),
+            step=1,
+            help="يُسحب منتجات هذه الصفحة فقط",
+        )
+        max_pages = 1
+        start_page = int(page_number)
+    else:
+        max_pages = 0
+        start_page = _page_from_url(source_url)
+        if start_page > 1:
+            st.caption(
+                f"يبدأ من صفحة {start_page} (من الرابط) ثم يتابع حتى آخر صفحة"
+            )
+        else:
+            st.caption("يبدأ من الصفحة 1 ويجلب كل المنتجات عبر البجنيشن")
+
     c_right, c_left = st.columns(2)
     with c_right:
         output_dir = st.text_input("📂 مجلد الإخراج", value="output")
         excel_filename = st.text_input("📊 ملف Excel", value=sub.excel_filename)
     with c_left:
         images_folder = st.text_input("🖼️ مجلد الصور", value=sub.images_folder)
-        max_pages = st.number_input("صفحات (0 = الكل)", min_value=0, value=0, step=1)
 
     rescrape = st.checkbox("🔄 إعادة سحب — استبدال نفس نطاق المعرفات", value=False)
 
@@ -484,7 +763,8 @@ with col_scrape:
                 output_dir=output_dir,
                 excel_filename=excel_filename,
                 images_folder=images_folder,
-                max_pages=int(max_pages),
+                max_pages=max_pages,
+                start_page=start_page,
                 rescrape=rescrape,
             )
             with st.spinner("⏳ جاري السحب وتحميل الصور..."):
@@ -499,6 +779,7 @@ with col_scrape:
             st.error(f"❌ {exc.code}: {exc}")
         except Exception as exc:
             st.error(f"❌ {exc}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── السجل والنتائج ────────────────────────────────────────────
 if st.session_state.progress_log:
@@ -508,8 +789,15 @@ if st.session_state.progress_log:
 
 if st.session_state.last_result:
     r = st.session_state.last_result
-    st.markdown("---")
-    st.markdown("### 📦 آخر عملية سحب")
+    st.markdown(
+        """
+<div class="result-card">
+  <div class="section-kicker">ملخص التنفيذ</div>
+  <div class="panel-title">📦 آخر عملية سحب</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
     s1, s2, s3, s4 = st.columns(4)
     s1.metric("المنتجات", r.stats.get("products_total", 0))

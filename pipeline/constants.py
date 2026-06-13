@@ -1,5 +1,7 @@
 """ثوابت التصدير والسحب المشتركة."""
 
+import os
+
 CATALOG_FILES = {
     "modules.xlsx": "الموديلات",
     "categories.xlsx": "التصنيفات الرئيسية (parent_id = 0)",
@@ -73,7 +75,8 @@ SCRAPE_SETTINGS = {
     "fetch_descriptions": False,
     "download_full_image": True,
     "webp_quality": 85,
-    "instashop_headless": False,
+    "instashop_headless": os.environ.get("INSTASHOP_HEADLESS", "").lower()
+    in ("1", "true", "yes"),
     "instashop_scroll_pause": 1.5,
 }
 

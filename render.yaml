@@ -5,7 +5,9 @@ services:
     plan: free
     repo: https://github.com/hashemnaim/scraping_product
     branch: main
-    buildCommand: pip install -r requirements.txt
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python -m playwright install --with-deps chromium
     startCommand: >-
       streamlit run app/ui.py
       --server.port=$PORT
@@ -18,3 +20,5 @@ services:
         value: "3.12.0"
       - key: PYTHONPATH
         value: .
+      - key: INSTASHOP_HEADLESS
+        value: "true"

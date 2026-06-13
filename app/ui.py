@@ -29,12 +29,10 @@ st.set_page_config(
 )
 
 
-@st.cache_resource
-def _warm_playwright_for_instashop() -> bool:
+def _warm_playwright_for_instashop() -> None:
     from pipeline.scrape.playwright_bootstrap import ensure_playwright_chromium
 
     ensure_playwright_chromium()
-    return True
 
 
 if os.getenv("USER") == "appuser":

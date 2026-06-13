@@ -3,6 +3,8 @@ services:
     name: scraping-product
     runtime: python
     plan: free
+    repo: https://github.com/hashemnaim/scraping_product
+    branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: >-
       streamlit run app/ui.py

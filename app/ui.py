@@ -567,7 +567,7 @@ with st.sidebar:
                 st.success(f"تم حفظ `{fname}`")
                 st.rerun()
 
-    if st.button("🔄 تحديث الكتالوج", use_container_width=True):
+    if st.button("🔄 تحديث الكتالوج", width="stretch"):
         catalog.clear_cache()
         st.rerun()
     st.divider()
@@ -690,7 +690,7 @@ with col_cat:
                     for u in units
                 ],
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
             )
     else:
         st.error(
@@ -752,7 +752,7 @@ with col_scrape:
     )
 
     start_disabled = not units
-    if st.button("🚀 بدء السحب", type="primary", disabled=start_disabled, use_container_width=True):
+    if st.button("🚀 بدء السحب", type="primary", disabled=start_disabled, width="stretch"):
         st.session_state.progress_log = []
         try:
             request = CategoryRunRequest(

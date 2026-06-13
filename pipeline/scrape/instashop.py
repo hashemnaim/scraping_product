@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
+from functools import lru_cache
 
 from pipeline.constants import HEADERS, SCRAPE_SETTINGS
 
@@ -49,7 +52,17 @@ def _clean_price(raw: str) -> str:
     return match.group(0) if match else raw.strip()
 
 
+@lru_cache(maxsize=1)
+def _ensure_playwright_chromium() -> None:
+    subprocess.run(
+        [sys.executable, "-m", "playwright", "install", "chromium"],
+        check=False,
+        capture_output=True,
+    )
+
+
 def scrape_instashop_category(url: str, on_progress=None) -> list[dict]:
+    _ensure_playwright_chromium()
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as playwright:

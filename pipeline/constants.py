@@ -68,6 +68,16 @@ EXCEL_COLUMNS = [
     "QuantityUnit",
 ]
 
+def _instashop_headless() -> bool:
+    flag = os.environ.get("INSTASHOP_HEADLESS", "").lower()
+    if flag in ("1", "true", "yes"):
+        return True
+    if flag in ("0", "false", "no"):
+        return False
+    # Streamlit Community Cloud user + servers without display
+    return os.getenv("USER") == "appuser" or not os.environ.get("DISPLAY")
+
+
 SCRAPE_SETTINGS = {
     "delay_between_requests": 1.5,
     "graphql_endpoint": "https://mcprod.seoudisupermarket.com/graphql",
@@ -75,8 +85,7 @@ SCRAPE_SETTINGS = {
     "fetch_descriptions": False,
     "download_full_image": True,
     "webp_quality": 85,
-    "instashop_headless": os.environ.get("INSTASHOP_HEADLESS", "").lower()
-    in ("1", "true", "yes"),
+    "instashop_headless": _instashop_headless(),
     "instashop_scroll_pause": 1.5,
 }
 

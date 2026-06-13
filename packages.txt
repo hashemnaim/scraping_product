@@ -16,4 +16,5 @@ libasound2
 libatspi2.0-0
 libgtk-3-0
 libx11-xcb1
-libgl1-mesa-glx
+libgl1
+libglx-mesa0

@@ -40,19 +40,25 @@ def _cache_folder_name(headless: bool) -> str:
 def _executable_candidates(headless: bool) -> list[Path]:
     cache = _browsers_cache_dir()
     folder = cache / _cache_folder_name(headless)
+    if not folder.is_dir():
+        return []
     if headless:
-        return [
-            folder / "chrome-linux" / "headless_shell",
-            folder / "chrome-linux64" / "headless_shell",
-            folder / "chrome-headless-shell-linux64" / "chrome-headless-shell",
-            folder / "chrome-headless-shell-linux-arm64" / "chrome-headless-shell",
-        ]
-    return [
-        folder / "chrome-linux" / "chrome",
-        folder / "chrome-linux64" / "chrome",
-        folder / "chrome-mac" / "Chromium.app" / "Contents" / "MacOS" / "Chromium",
-        folder / "chrome-win" / "chrome.exe",
-    ]
+        patterns = (
+            "chrome-headless-shell-*/chrome-headless-shell",
+            "chrome-headless-shell-*/headless_shell",
+            "chrome-linux*/headless_shell",
+        )
+    else:
+        patterns = (
+            "chrome-*/chrome",
+            "chrome-mac*/Chromium.app/Contents/MacOS/Chromium",
+            "chrome-mac-*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+            "chrome-win*/chrome.exe",
+        )
+    found: list[Path] = []
+    for pattern in patterns:
+        found.extend(folder.glob(pattern))
+    return found
 
 
 def _browser_ready(headless: bool) -> bool:

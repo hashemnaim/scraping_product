@@ -1,7 +1,7 @@
 """اختبارات مطابقة الوحدات — القطعة أولاً."""
 
 from pipeline.catalog import Unit
-from pipeline.units_matcher import match_unit
+from pipeline.units_matcher import match_unit, match_unit_for_category
 
 
 def _module3_units() -> list[Unit]:
@@ -69,3 +69,75 @@ def test_no_unit_marker():
     unit_id, quantity = match_unit("Product without unit", units)
     assert unit_id is None
     assert quantity is None
+
+
+def test_exception_category_keeps_kilogram():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Tomato 1 kg",
+        units,
+        category_name="الفواكه والخضروات",
+        subcategory_name="فواكه",
+    )
+    assert unit_id == 9
+    assert quantity == "1"
+
+
+def test_exception_category_keeps_gram():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Cheese 250 g",
+        units,
+        category_name="الألبان , البيض والجبنة",
+        subcategory_name="الجبنة واللبنة",
+    )
+    assert unit_id == 10
+    assert quantity == "250"
+
+
+def test_non_exception_weight_becomes_piece():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Cheese 250 g",
+        units,
+        category_name="سناكس و شيكولاته",
+        subcategory_name="بطاطس و مقبلات",
+    )
+    assert unit_id == 7
+    assert quantity == "1"
+
+
+def test_non_exception_ml_becomes_piece():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Juice 500ml",
+        units,
+        category_name="سناكس و شيكولاته",
+        subcategory_name="مقبلات",
+    )
+    assert unit_id == 7
+    assert quantity == "1"
+
+
+def test_non_exception_piece_with_weight_unchanged():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Chips 150g - 1 Piece",
+        units,
+        category_name="سناكس و شيكولاته",
+        subcategory_name="مقبلات",
+    )
+    assert unit_id == 7
+    assert quantity == "1"
+
+
+def test_non_exception_piece_count_unchanged():
+    units = _module3_units()
+    unit_id, quantity = match_unit_for_category(
+        "Water 500ml - 2 Piece",
+        units,
+        category_name="المشروبات",
+        subcategory_name="مشروبات غازيه",
+    )
+    assert unit_id == 7
+    assert quantity == "2"

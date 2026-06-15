@@ -120,7 +120,6 @@ def _scroll_products(page, on_progress=None) -> None:
     prev_count = 0
     stable_rounds = 0
     pause_ms = int(SCRAPE_SETTINGS["instashop_scroll_pause"] * 1000)
-    min_scrolls = 8
 
     for scroll_index in range(60):
         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -130,7 +129,8 @@ def _scroll_products(page, on_progress=None) -> None:
             on_progress("scroll", scroll_index + 1, 60, f"{count} منتج")
         if count == prev_count:
             stable_rounds += 1
-            if stable_rounds >= 3 and scroll_index + 1 >= min_scrolls:
+            # لا تتوقف مبكراً عند 0 — Instashop يحمّل المنتجات ببطء
+            if count > 0 and stable_rounds >= 3:
                 break
         else:
             stable_rounds = 0

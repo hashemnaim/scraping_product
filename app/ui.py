@@ -35,11 +35,10 @@ def _warm_playwright_for_instashop() -> None:
     ensure_playwright_chromium()
 
 
-if os.getenv("USER") == "appuser":
-    try:
-        _warm_playwright_for_instashop()
-    except Exception as exc:
-        st.session_state["_playwright_error"] = str(exc)
+try:
+    _warm_playwright_for_instashop()
+except Exception as exc:
+    st.session_state["_playwright_error"] = str(exc)
 
 st.markdown(
     """

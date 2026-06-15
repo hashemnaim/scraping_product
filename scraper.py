@@ -12,6 +12,7 @@ import sys
 
 from pipeline.errors import PipelineError
 from pipeline.runner import CategoryRunRequest, run_category_job
+from pipeline.scrape.detector import detect_mode
 
 
 def main():
@@ -31,6 +32,12 @@ def main():
     )
     parser.add_argument("--rescrape", action="store_true", help="إعادة سحب بنفس نطاق المعرفات")
     args = parser.parse_args()
+
+    if detect_mode(args.url, args.mode) == "instashop":
+        from pipeline.scrape.playwright_bootstrap import ensure_playwright_chromium
+
+        print("⏳ تجهيز متصفح Instashop (headless)...")
+        ensure_playwright_chromium()
 
     request = CategoryRunRequest(
         module_id=args.module_id,

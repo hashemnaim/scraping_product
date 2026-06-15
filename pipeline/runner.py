@@ -12,7 +12,7 @@ import requests
 from pipeline import catalog, exporter, id_state, images
 from pipeline.catalog import get_module, get_subcategory, get_units, list_categories, make_run_key, require_units
 from pipeline.tags import build_search_tags
-from pipeline.units_matcher import match_unit
+from pipeline.units_matcher import match_unit_for_category
 from pipeline.errors import SCRAPE_FAILED, PipelineError
 from pipeline.scrape.detector import scrape_category
 
@@ -136,7 +136,12 @@ def run_category_job(
             subcategory_name=sub.name_ar,
             source_category=product.get("category", ""),
         )
-        unit_id, quantity_unit = match_unit(product.get("name", ""), module_units)
+        unit_id, quantity_unit = match_unit_for_category(
+            product.get("name", ""),
+            module_units,
+            category_name=category_name,
+            subcategory_name=sub.name_ar,
+        )
         if unit_id is not None:
             product["unit_id"] = unit_id
         if quantity_unit is not None:

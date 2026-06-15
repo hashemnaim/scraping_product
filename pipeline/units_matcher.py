@@ -56,6 +56,18 @@ PIECE_MARKERS = frozenset(
     {"قطعه", "قطعة", "قطع", "piece", "pieces", "pc", "pcs", "حبة", "حبات", "بالقطعة"}
 )
 
+_WEIGHT_CATEGORY_KEYWORDS = (
+    "خضروات",
+    "خضار",
+    "فواكه",
+    "فاكهة",
+    "جبن",
+    "جبنة",
+    "أجبان",
+    "اجبان",
+    "لبنة",
+)
+
 
 def _normalize_quantity(raw: str) -> str:
     quantity = raw.replace(",", ".")
@@ -122,6 +134,66 @@ def _match_by_patterns(
             continue
         return unit.unit_id, _normalize_quantity(match.group(1))
     return None, None
+
+
+def _normalize_category_text(text: str) -> str:
+    normalized = (text or "").strip()
+    for src, dst in (("أ", "ا"), ("إ", "ا"), ("آ", "ا"), ("ة", "ه")):
+        normalized = normalized.replace(src, dst)
+    return normalized.lower()
+
+
+def category_allows_weight_units(category_name: str, subcategory_name: str) -> bool:
+    """تصنيفات تحتفظ بوحدات الوزن/الحجم من اسم المنتج (خضروات، فواكه، أجبان)."""
+    haystack = _normalize_category_text(f"{category_name} {subcategory_name}")
+    return any(keyword in haystack for keyword in _WEIGHT_CATEGORY_KEYWORDS)
+
+
+def _is_piece_unit_id(unit_id: int | None, units: list[Unit]) -> bool:
+    if unit_id is None:
+        return False
+    piece_unit = _find_piece_unit(units)
+    return piece_unit is not None and piece_unit.unit_id == unit_id
+
+
+def _has_weight_marker(name: str) -> bool:
+    return any(pattern.search(name) for pattern, _ in WEIGHT_PATTERNS)
+
+
+def _has_volume_marker(name: str) -> bool:
+    return any(pattern.search(name) for pattern, _ in VOLUME_PATTERNS)
+
+
+def _piece_one(units: list[Unit]) -> tuple[int | None, str | None]:
+    piece_unit = _find_piece_unit(units)
+    if piece_unit is None:
+        return None, None
+    return piece_unit.unit_id, "1"
+
+
+def match_unit_for_category(
+    name: str,
+    units: list[Unit],
+    *,
+    category_name: str = "",
+    subcategory_name: str = "",
+) -> tuple[int | None, str | None]:
+    """مطابقة وحدة مع قواعد التصنيف: خارج الاستثناءات → g/kg/ml تصبح قطعة + 1."""
+    unit_id, quantity_unit = match_unit(name, units)
+    if not name or not units:
+        return unit_id, quantity_unit
+
+    if category_allows_weight_units(category_name, subcategory_name):
+        return unit_id, quantity_unit
+
+    if _is_piece_unit_id(unit_id, units):
+        return unit_id, quantity_unit
+
+    normalized = (name or "").replace("'", "'").strip()
+    if _has_weight_marker(normalized) or _has_volume_marker(normalized):
+        return _piece_one(units)
+
+    return unit_id, quantity_unit
 
 
 def match_unit(name: str, units: list[Unit]) -> tuple[int | None, str | None]:

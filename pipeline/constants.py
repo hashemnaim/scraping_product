@@ -74,8 +74,7 @@ def _instashop_headless() -> bool:
         return True
     if flag in ("0", "false", "no"):
         return False
-    # Streamlit Community Cloud user + servers without display
-    return os.getenv("USER") == "appuser" or not os.environ.get("DISPLAY")
+    return True
 
 
 SCRAPE_SETTINGS = {

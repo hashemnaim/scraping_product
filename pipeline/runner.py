@@ -10,13 +10,26 @@ from typing import Callable
 import requests
 
 from pipeline import catalog, exporter, id_state, images
-from pipeline.catalog import get_module, get_subcategory, get_units, list_categories, make_run_key, require_units
+from pipeline.catalog import (
+    get_module,
+    get_subcategory,
+    get_units,
+    list_categories,
+    load_category_mapping_rules,
+    make_run_key,
+    require_units,
+)
+from pipeline.brand_matcher import match_brand_with_meta
+from pipeline.category_rules import resolve_subcategory
+from pipeline.match_types import FieldEnrichment, WarningFlag
+from pipeline.review_report import build_review_report
+from pipeline.run_history import append_run_log
 from pipeline.tags import build_search_tags
-from pipeline.units_matcher import match_unit_for_category
+from pipeline.units_matcher import match_unit_with_meta
 from pipeline.errors import SCRAPE_FAILED, PipelineError
 from pipeline.scrape.detector import scrape_category
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from pipeline.paths import project_root
 
 ProgressCallback = Callable[[str, int, int, str], None]
 
@@ -34,6 +47,7 @@ class CategoryRunRequest:
     start_page: int = 1
     rescrape: bool = False
     mode: str = "auto"
+    apply_category_rules: bool = False
 
 
 @dataclass
@@ -45,6 +59,8 @@ class CategoryRunResult:
     images_dir: str
     stats: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
+    review_report: dict = field(default_factory=dict)
+    mapping_stats: dict = field(default_factory=dict)
 
 
 def _default_progress(phase: str, current: int, total: int, message: str):
@@ -68,8 +84,14 @@ def run_category_job(
             category_name = category.name_ar
             break
 
+    mapping_rules = (
+        load_category_mapping_rules(request.module_id)
+        if request.apply_category_rules
+        else []
+    )
+
     run_key = make_run_key(request.module_id, request.category_id, request.sub_category_id)
-    output_base = PROJECT_ROOT / request.output_dir / sub.output_slug
+    output_base = project_root() / request.output_dir / sub.output_slug
     images_dir = output_base / (request.images_folder or sub.images_folder)
     excel_path = output_base / (request.excel_filename or sub.excel_filename)
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -102,14 +124,15 @@ def run_category_job(
         run_key,
         len(raw_products),
         request.rescrape,
-        str(excel_path.relative_to(PROJECT_ROOT)),
-        str(images_dir.relative_to(PROJECT_ROOT)),
+        str(excel_path.relative_to(project_root())),
+        str(images_dir.relative_to(project_root())),
     )
 
     images_ok = 0
     images_failed = 0
     bytes_saved = 0
     rows = []
+    enrichments: list[FieldEnrichment] = []
 
     for index, (product_id, product) in enumerate(zip(id_range.ids, raw_products)):
         progress("images", index + 1, len(raw_products), product.get("name", "")[:40])
@@ -136,16 +159,47 @@ def run_category_job(
             subcategory_name=sub.name_ar,
             source_category=product.get("category", ""),
         )
-        unit_id, quantity_unit = match_unit_for_category(
+
+        unit_match = match_unit_with_meta(
             product.get("name", ""),
             module_units,
             category_name=category_name,
             subcategory_name=sub.name_ar,
         )
-        if unit_id is not None:
-            product["unit_id"] = unit_id
-        if quantity_unit is not None:
-            product["quantity_unit"] = quantity_unit
+        brand_match = match_brand_with_meta(product.get("name", ""), request.module_id)
+
+        if unit_match.unit_id is not None:
+            product["unit_id"] = unit_match.unit_id
+        if unit_match.quantity_unit is not None:
+            product["quantity_unit"] = unit_match.quantity_unit
+        if brand_match.brand_id is not None:
+            product["brand_id"] = brand_match.brand_id
+
+        resolved_sub_id = request.sub_category_id
+        rule_warnings: list[str] = []
+        if mapping_rules:
+            resolved_sub_id, rule_applied, conflict = resolve_subcategory(
+                product.get("category", ""),
+                request.sub_category_id,
+                mapping_rules,
+            )
+            if rule_applied:
+                rule_warnings.append(WarningFlag.CATEGORY_RULE_APPLIED.value)
+            if conflict:
+                rule_warnings.append(WarningFlag.CATEGORY_RULE_CONFLICT.value)
+
+        enrichments.append(
+            FieldEnrichment(
+                product_id=product_id,
+                product_name=product.get("name", ""),
+                unit=unit_match,
+                brand=brand_match,
+                warnings=rule_warnings,
+                source_category=product.get("category", ""),
+                resolved_sub_category_id=resolved_sub_id,
+            )
+        )
+
         rows.append(
             exporter.build_row(
                 product_id,
@@ -153,10 +207,13 @@ def run_category_job(
                 request.images_folder or sub.images_folder,
                 request.module_id,
                 request.category_id,
-                request.sub_category_id,
+                resolved_sub_id,
                 module.import_defaults,
             )
         )
+
+    review_report = build_review_report(enrichments, raw_products)
+    mapping_stats = review_report.get("mapping_stats", {})
 
     exporter.write_excel(rows, excel_path)
 
@@ -164,6 +221,20 @@ def run_category_job(
         keep_ids = set(id_range.ids)
         backup = Path(str(images_dir) + "_removed")
         images.move_orphan_images_to_backup(images_dir, keep_ids, backup)
+
+    append_run_log(
+        {
+            "run_key": run_key,
+            "source_url": request.source_url,
+            "module_id": request.module_id,
+            "category_id": request.category_id,
+            "sub_category_id": request.sub_category_id,
+            "apply_category_rules": request.apply_category_rules,
+            "products_total": len(raw_products),
+            "warning_counts": review_report.get("counts", {}),
+            "excel_path": str(excel_path),
+        }
+    )
 
     return CategoryRunResult(
         status="completed",
@@ -177,5 +248,7 @@ def run_category_job(
             "images_failed": images_failed,
             "bytes_saved": bytes_saved,
         },
+        review_report=review_report,
+        mapping_stats=mapping_stats,
         errors=[],
     )

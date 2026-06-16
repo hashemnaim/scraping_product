@@ -31,6 +31,11 @@ def main():
         default="auto",
     )
     parser.add_argument("--rescrape", action="store_true", help="إعادة سحب بنفس نطاق المعرفات")
+    parser.add_argument(
+        "--apply-category-rules",
+        action="store_true",
+        help="تطبيق catalog/category_mapping_rules.xlsx على SubCategoryId",
+    )
     args = parser.parse_args()
 
     if detect_mode(args.url, args.mode) == "instashop":
@@ -50,6 +55,7 @@ def main():
         max_pages=args.max_pages,
         rescrape=args.rescrape,
         mode=args.mode,
+        apply_category_rules=args.apply_category_rules,
     )
 
     def on_progress(phase, current, total, message):

@@ -8,17 +8,25 @@ import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from pipeline.paths import is_frozen, project_root, resource_root
+
+_PROJECT_ROOT = project_root()
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
+if str(resource_root()) not in sys.path and resource_root() != _PROJECT_ROOT:
+    sys.path.insert(0, str(resource_root()))
 
 import streamlit as st
 
 from pipeline import catalog
 from pipeline.constants import CATALOG_FILES
 
-importlib.reload(catalog)
+if not is_frozen():
+    importlib.reload(catalog)
+from pipeline.constants import MAP_PLACE_CATEGORIES
 from pipeline.errors import PipelineError
+from pipeline.field_mapping import WORKFLOW_TIP, build_pre_scrape_summary, field_source_rows
+from pipeline.maps_runner import MapsRunRequest, run_maps_job
 from pipeline.runner import CategoryRunRequest, run_category_job
 
 st.set_page_config(
@@ -500,6 +508,8 @@ if "progress_log" not in st.session_state:
     st.session_state.progress_log = []
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
+if "last_maps_result" not in st.session_state:
+    st.session_state.last_maps_result = None
 
 _DEFAULT_MODULE_ID = 3  # سوبر ماركت
 
@@ -529,10 +539,10 @@ with st.sidebar:
     st.markdown("### 📋 خطوات العمل")
     st.markdown(
         """
-1. **ارفع ملفات Excel** من الأسفل  
-2. اختر **الموديل** والتصنيف (من الملفات المحلية)  
-3. أدخل **رابط المصدر**  
-4. اضغط **بدء السحب**
+1. **اختر المصدر**: موقع، خريطة، أو خيارات أخرى  
+2. **من موقع**: ارفع ملفات Excel واختر التصنيف والرابط  
+3. **من خريطة**: المدينة، المساحة، والتصنيفات  
+4. اضغط **بدء السحب** أو **سحب من الخريطة**
         """
     )
     st.divider()
@@ -606,8 +616,8 @@ st.markdown(
   <div class="hero-content">
     <div>
       <div class="hero-badge">لوحة تحكم المنتج</div>
-      <h1>نظام تصدير المنتجات الذكي</h1>
-      <p>اختر الموديل والتصنيف، ضع رابط المصدر، ودع النظام يجلب المنتجات والصور ويجهز ملف Excel للاستيراد.</p>
+      <h1>نظام السحب والتصدير الذكي</h1>
+      <p>من موقع إلكتروني أو من خريطة Google — اختر المصدر، حدّد الإعدادات، وصدّر النتائج إلى Excel.</p>
     </div>
     <div class="hero-stats">
       <div class="hero-stat"><strong>{catalog_ready}/{catalog_total}</strong><span>ملفات كتالوج جاهزة</span></div>
@@ -631,10 +641,10 @@ for fname, label in CATALOG_FILES.items():
 st.markdown(
     f"""
 <div class="quick-grid">
-  <div class="quick-card"><strong>1. اختر التصنيف</strong><span>سوبر ماركت يظهر أولاً بشكل افتراضي.</span></div>
-  <div class="quick-card"><strong>2. أدخل الرابط</strong><span>يدعم صفحة واحدة أو كل البجنيشن.</span></div>
-  <div class="quick-card"><strong>3. شغّل السحب</strong><span>يتم تنزيل الصور وبناء Excel تلقائياً.</span></div>
-  <div class="quick-card"><strong>4. راجع النتيجة</strong><span>ملف جاهز ومسارات الصور تظهر أسفل الصفحة.</span></div>
+  <div class="quick-card"><strong>1. اختر المصدر</strong><span>موقع إلكتروني، خريطة، أو خيارات أخرى.</span></div>
+  <div class="quick-card"><strong>2. حدّد الإعدادات</strong><span>تصنيفات، رابط، أو مدينة ومساحة تغطية.</span></div>
+  <div class="quick-card"><strong>3. شغّل السحب</strong><span>منتجات مع صور أو محلات مع بيانات الاتصال.</span></div>
+  <div class="quick-card"><strong>4. راجع النتيجة</strong><span>ملف Excel جاهز يظهر أسفل الصفحة.</span></div>
 </div>
 <div class="panel-card">
   <div class="section-kicker">جاهزية ملفات الكتالوج</div>
@@ -644,161 +654,290 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# العمود الأول في الكود = يمين الشاشة بسبب اتجاه RTL العام
-col_cat, col_scrape = st.columns([1, 1], gap="large")
+tab_website, tab_maps, tab_other = st.tabs(
+    ["🌐 من موقع", "🗺️ من خريطة", "📋 خيارات أخرى"]
+)
 
-with col_cat:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">🏷️ الموديل والتصنيف</div>', unsafe_allow_html=True)
+with tab_website:
+    col_cat, col_scrape = st.columns([1, 1], gap="large")
 
-    modules = _modules_default_first(catalog.list_modules())
-    if not modules:
-        st.warning("لا توجد موديلات — تأكد من وجود `catalog/modules.xlsx`")
-        st.stop()
+    with col_cat:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🏷️ الموديل والتصنيف</div>', unsafe_allow_html=True)
 
-    module_labels = {m.module_id: m.name_ar for m in modules}
-    module_id = st.selectbox(
-        "الموديل",
-        options=[m.module_id for m in modules],
-        index=0,
-        format_func=lambda mid: f"{mid} — {module_labels[mid]}",
-    )
+        modules = _modules_default_first(catalog.list_modules())
+        if not modules:
+            st.warning("لا توجد موديلات — تأكد من وجود `catalog/modules.xlsx`")
+            st.stop()
 
-    categories = catalog.list_categories(module_id)
-    if not categories:
-        st.warning(
-            f"لا توجد تصنيفات للموديل {module_id} — أضف صفوفاً في "
-            "`categories.xlsx` (عمود الوحدة = اسم الموديل) أو `subcategories.xlsx`"
+        module_labels = {m.module_id: m.name_ar for m in modules}
+        module_id = st.selectbox(
+            "الموديل",
+            options=[m.module_id for m in modules],
+            index=0,
+            format_func=lambda mid: f"{mid} — {module_labels[mid]}",
         )
-        st.stop()
 
-    category_labels = {c.category_id: c.name_ar for c in categories}
-    category_id = st.selectbox(
-        "التصنيف الرئيسي",
-        options=[c.category_id for c in categories],
-        format_func=lambda cid: f"{cid} — {category_labels[cid]}",
-    )
+        categories = catalog.list_categories(module_id)
+        if not categories:
+            st.warning(
+                f"لا توجد تصنيفات للموديل {module_id} — أضف صفوفاً في "
+                "`categories.xlsx` (عمود الوحدة = اسم الموديل) أو `subcategories.xlsx`"
+            )
+            st.stop()
 
-    subcategories = catalog.list_subcategories(module_id, category_id)
-    if not subcategories:
-        st.warning(
-            f"لا توجد تصنيفات فرعية للتصنيف {category_id} — أضف صفاً في `subcategories.xlsx`"
+        category_labels = {c.category_id: c.name_ar for c in categories}
+        category_id = st.selectbox(
+            "التصنيف الرئيسي",
+            options=[c.category_id for c in categories],
+            format_func=lambda cid: f"{cid} — {category_labels[cid]}",
         )
-        st.stop()
 
-    sub_labels = {s.sub_category_id: s.name_ar for s in subcategories}
-    sub_category_id = st.selectbox(
-        "التصنيف الفرعي",
-        options=[s.sub_category_id for s in subcategories],
-        format_func=lambda sid: f"{sid} — {sub_labels[sid]}",
-    )
+        subcategories = catalog.list_subcategories(module_id, category_id)
+        if not subcategories:
+            st.warning(
+                f"لا توجد تصنيفات فرعية للتصنيف {category_id} — أضف صفاً في `subcategories.xlsx`"
+            )
+            st.stop()
 
-    sub = catalog.get_subcategory(module_id, category_id, sub_category_id)
-    units = catalog.get_units(module_id)
+        sub_labels = {s.sub_category_id: s.name_ar for s in subcategories}
+        sub_category_id = st.selectbox(
+            "التصنيف الفرعي",
+            options=[s.sub_category_id for s in subcategories],
+            format_func=lambda sid: f"{sid} — {sub_labels[sid]}",
+        )
 
-    st.markdown("**المعرفات المُعبَّأة تلقائياً**")
-    m3, m2, m1 = st.columns(3)
-    m3.metric("ModuleId", module_id)
-    m2.metric("CategoryId", category_id)
-    m1.metric("SubCategoryId", sub_category_id)
+        sub = catalog.get_subcategory(module_id, category_id, sub_category_id)
+        units = catalog.get_units(module_id)
 
-    if units:
-        with st.expander(f"📐 وحدات الموديل ({len(units)})", expanded=False):
+        st.markdown("**المعرفات المُعبَّأة تلقائياً**")
+        m3, m2, m1 = st.columns(3)
+        m3.metric("ModuleId", module_id)
+        m2.metric("CategoryId", category_id)
+        m1.metric("SubCategoryId", sub_category_id)
+
+        if units:
+            with st.expander(f"📐 وحدات الموديل ({len(units)})", expanded=False):
+                st.dataframe(
+                    [
+                        {"UnitId": u.unit_id, "الاسم": u.name_ar, "مرادفات": ", ".join(u.aliases)}
+                        for u in units
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                )
+        else:
+            st.error(
+                f"لا توجد وحدات للموديل {module_id} — تأكد من وجود `catalog/units.xlsx` "
+                f"(عمود ModuleId = {module_id})"
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_scrape:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">⚙️ إعدادات السحب</div>', unsafe_allow_html=True)
+
+        source_url = st.text_input("🔗 رابط المصدر", value=sub.default_source_url)
+
+        scrape_scope = st.radio(
+            "نطاق الصفحات",
+            options=["all", "single"],
+            format_func=lambda v: (
+                "كل المنتجات — يتابع البجنيشن تلقائياً"
+                if v == "all"
+                else "صفحة واحدة فقط"
+            ),
+            horizontal=True,
+        )
+
+        if scrape_scope == "single":
+            page_number = st.number_input(
+                "رقم الصفحة",
+                min_value=1,
+                value=_page_from_url(source_url),
+                step=1,
+                help="يُسحب منتجات هذه الصفحة فقط",
+            )
+            max_pages = 1
+            start_page = int(page_number)
+        else:
+            max_pages = 0
+            start_page = _page_from_url(source_url)
+            if start_page > 1:
+                st.caption(
+                    f"يبدأ من صفحة {start_page} (من الرابط) ثم يتابع حتى آخر صفحة"
+                )
+            else:
+                st.caption("يبدأ من الصفحة 1 ويجلب كل المنتجات عبر البجنيشن")
+
+        c_right, c_left = st.columns(2)
+        with c_right:
+            output_dir = st.text_input("📂 مجلد الإخراج", value="output")
+            excel_filename = st.text_input("📊 ملف Excel", value=sub.excel_filename)
+        with c_left:
+            images_folder = st.text_input("🖼️ مجلد الصور", value=sub.images_folder)
+
+        rescrape = st.checkbox("🔄 إعادة سحب — استبدال نفس نطاق المعرفات", value=False)
+        apply_category_rules = st.checkbox(
+            "🔗 تفعيل قواعد ربط تصنيف الموقع",
+            value=False,
+            help="يستخدم catalog/category_mapping_rules.xlsx لمطابقة نص تصنيف الموقع مع SubCategoryId",
+        )
+
+        st.markdown(
+            f'<p style="color:#5a7a65;font-size:0.85rem;margin:0.5rem 0;">'
+            f'المسار: <code>{output_dir}/{sub.output_slug}/</code></p>',
+            unsafe_allow_html=True,
+        )
+
+        st.info(WORKFLOW_TIP)
+        with st.expander("📋 كيف تُملأ حقول Excel؟", expanded=False):
+            summary = build_pre_scrape_summary(
+                module_id,
+                category_id,
+                sub_category_id,
+                category_labels[category_id],
+                sub_labels[sub_category_id],
+                len(units) if units else 0,
+            )
+            st.caption(summary["note"])
+            if catalog.catalog_sources().get("category_mapping_rules.xlsx"):
+                st.caption(
+                    "يمكنك تفعيل «قواعد ربط تصنيف الموقع» أسفل الصفحة "
+                    "لمطابقة نص تصنيف الموقع مع SubCategoryId."
+                )
             st.dataframe(
                 [
-                    {"UnitId": u.unit_id, "الاسم": u.name_ar, "مرادفات": ", ".join(u.aliases)}
-                    for u in units
+                    {
+                        "الحقل": f"{row['icon']} {row['label_ar']}",
+                        "المصدر": row["source_ar"],
+                    }
+                    for row in field_source_rows()
                 ],
                 hide_index=True,
                 width="stretch",
             )
-    else:
-        st.error(
-            f"لا توجد وحدات للموديل {module_id} — تأكد من وجود `catalog/units.xlsx` "
-            f"(عمود ModuleId = {module_id})"
+            c1, c2, c3 = st.columns(3)
+            c1.metric("CategoryId", category_id)
+            c2.metric("SubCategoryId", sub_category_id)
+            c3.metric("ModuleId", module_id)
+
+        start_disabled = not units
+        if st.button(
+            "🚀 بدء السحب",
+            type="primary",
+            disabled=start_disabled,
+            width="stretch",
+            key="start_website_scrape",
+        ):
+            st.session_state.progress_log = []
+            try:
+                request = CategoryRunRequest(
+                    module_id=module_id,
+                    category_id=category_id,
+                    sub_category_id=sub_category_id,
+                    source_url=source_url,
+                    output_dir=output_dir,
+                    excel_filename=excel_filename,
+                    images_folder=images_folder,
+                    max_pages=max_pages,
+                    start_page=start_page,
+                    rescrape=rescrape,
+                    apply_category_rules=apply_category_rules,
+                )
+                with st.spinner("⏳ جاري السحب وتحميل الصور..."):
+                    result = run_category_job(request, on_progress=_progress_log)
+                st.session_state.last_result = result
+                st.session_state.last_maps_result = None
+                st.balloons()
+                st.success(
+                    f"✅ اكتمل — {result.stats['products_total']} منتج | "
+                    f"🖼️ {result.stats['images_ok']} صورة ناجحة"
+                )
+            except PipelineError as exc:
+                st.error(f"❌ {exc.code}: {exc}")
+            except Exception as exc:
+                st.error(f"❌ {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+with tab_maps:
+    col_map_settings, col_map_output = st.columns([1, 1], gap="large")
+
+    with col_map_settings:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🗺️ إعدادات الخريطة</div>', unsafe_allow_html=True)
+
+        map_city = st.text_input("🏙️ المدينة / المنطقة", placeholder="مثال: القاهرة، الإسكندرية، الرياض")
+        map_district = st.text_input(
+            "📍 حي أو منطقة فرعية (اختياري)",
+            placeholder="مثال: مدينة نصر، المعادي",
         )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with col_scrape:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ إعدادات السحب</div>', unsafe_allow_html=True)
-
-    source_url = st.text_input("🔗 رابط المصدر", value=sub.default_source_url)
-
-    scrape_scope = st.radio(
-        "نطاق الصفحات",
-        options=["all", "single"],
-        format_func=lambda v: (
-            "كل المنتجات — يتابع البجنيشن تلقائياً"
-            if v == "all"
-            else "صفحة واحدة فقط"
-        ),
-        horizontal=True,
-    )
-
-    if scrape_scope == "single":
-        page_number = st.number_input(
-            "رقم الصفحة",
+        map_radius = st.slider(
+            "مساحة التغطية (كم)",
             min_value=1,
-            value=_page_from_url(source_url),
-            step=1,
-            help="يُسحب منتجات هذه الصفحة فقط",
+            max_value=50,
+            value=10,
+            help="كلما زادت المساحة زاد عدد المحلات المسحوبة والوقت المطلوب",
         )
-        max_pages = 1
-        start_page = int(page_number)
-    else:
-        max_pages = 0
-        start_page = _page_from_url(source_url)
-        if start_page > 1:
-            st.caption(
-                f"يبدأ من صفحة {start_page} (من الرابط) ثم يتابع حتى آخر صفحة"
-            )
-        else:
-            st.caption("يبدأ من الصفحة 1 ويجلب كل المنتجات عبر البجنيشن")
+        map_categories = st.multiselect(
+            "التصنيفات المطلوبة",
+            options=MAP_PLACE_CATEGORIES,
+            default=["مطاعم"],
+            help="يمكن اختيار أكثر من تصنيف — يُسحب كل تصنيف على حدة",
+        )
 
-    c_right, c_left = st.columns(2)
-    with c_right:
-        output_dir = st.text_input("📂 مجلد الإخراج", value="output")
-        excel_filename = st.text_input("📊 ملف Excel", value=sub.excel_filename)
-    with c_left:
-        images_folder = st.text_input("🖼️ مجلد الصور", value=sub.images_folder)
+        st.caption(
+            "النتيجة: اسم المحل، العنوان، رقم الهاتف، التصنيف، المدينة، ورابط الخريطة."
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    rescrape = st.checkbox("🔄 إعادة سحب — استبدال نفس نطاق المعرفات", value=False)
+    with col_map_output:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">📊 إخراج المحلات</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        f'<p style="color:#5a7a65;font-size:0.85rem;margin:0.5rem 0;">'
-        f'المسار: <code>{output_dir}/{sub.output_slug}/</code></p>',
-        unsafe_allow_html=True,
+        map_output_dir = st.text_input("📂 مجلد الإخراج", value="output", key="map_output_dir")
+        map_excel_filename = st.text_input("📊 ملف Excel", value="places.xlsx", key="map_excel")
+
+        map_disabled = not map_city.strip() or not map_categories
+        if st.button(
+            "🚀 سحب من الخريطة",
+            type="primary",
+            disabled=map_disabled,
+            width="stretch",
+            key="start_maps_scrape",
+        ):
+            st.session_state.progress_log = []
+            try:
+                maps_request = MapsRunRequest(
+                    city=map_city.strip(),
+                    radius_km=float(map_radius),
+                    categories=map_categories,
+                    district=map_district.strip(),
+                    output_dir=map_output_dir,
+                    excel_filename=map_excel_filename,
+                )
+                with st.spinner("⏳ جاري سحب المحلات من Google Maps..."):
+                    maps_result = run_maps_job(maps_request, on_progress=_progress_log)
+                st.session_state.last_maps_result = maps_result
+                st.session_state.last_result = None
+                st.balloons()
+                st.success(
+                    f"✅ اكتمل — {maps_result.stats['places_total']} محل | "
+                    f"📞 {maps_result.stats['with_phone']} برقم هاتف"
+                )
+            except PipelineError as exc:
+                st.error(f"❌ {exc.code}: {exc}")
+            except Exception as exc:
+                st.error(f"❌ {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+with tab_other:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📋 خيارات أخرى</div>', unsafe_allow_html=True)
+    st.info(
+        "قريباً: سحب من Instagram، Facebook، دليل يدوي (CSV)، أو مصادر مخصصة. "
+        "أخبرنا بالمصدر الذي تريده لنضيفه."
     )
-
-    start_disabled = not units
-    if st.button("🚀 بدء السحب", type="primary", disabled=start_disabled, width="stretch"):
-        st.session_state.progress_log = []
-        try:
-            request = CategoryRunRequest(
-                module_id=module_id,
-                category_id=category_id,
-                sub_category_id=sub_category_id,
-                source_url=source_url,
-                output_dir=output_dir,
-                excel_filename=excel_filename,
-                images_folder=images_folder,
-                max_pages=max_pages,
-                start_page=start_page,
-                rescrape=rescrape,
-            )
-            with st.spinner("⏳ جاري السحب وتحميل الصور..."):
-                result = run_category_job(request, on_progress=_progress_log)
-            st.session_state.last_result = result
-            st.balloons()
-            st.success(
-                f"✅ اكتمل — {result.stats['products_total']} منتج | "
-                f"🖼️ {result.stats['images_ok']} صورة ناجحة"
-            )
-        except PipelineError as exc:
-            st.error(f"❌ {exc.code}: {exc}")
-        except Exception as exc:
-            st.error(f"❌ {exc}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ── السجل والنتائج ────────────────────────────────────────────
@@ -806,6 +945,29 @@ if st.session_state.progress_log:
     with st.expander("📜 سجل التقدم", expanded=False):
         log_html = "<br>".join(st.session_state.progress_log[-40:])
         st.markdown(f'<div class="log-box">{log_html}</div>', unsafe_allow_html=True)
+
+if st.session_state.last_maps_result:
+    r = st.session_state.last_maps_result
+    st.markdown(
+        """
+<div class="result-card">
+  <div class="section-kicker">ملخص التنفيذ</div>
+  <div class="panel-title">🗺️ آخر سحب من الخريطة</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("المحلات", r.stats.get("places_total", 0))
+    m2.metric("بأرقام هاتف", r.stats.get("with_phone", 0))
+    m3.metric("التصنيفات", r.stats.get("categories", 0))
+
+    st.markdown("**ملف Excel**")
+    st.code(r.excel_path, language=None)
+
+    with st.expander("تفاصيل JSON", expanded=False):
+        st.json({"status": r.status, "stats": r.stats})
 
 if st.session_state.last_result:
     r = st.session_state.last_result
@@ -835,11 +997,56 @@ if st.session_state.last_result:
         st.markdown("**مجلد الصور**")
         st.code(r.images_dir, language=None)
 
+    review = getattr(r, "review_report", None) or {}
+    if review:
+        st.markdown("#### 📋 تقرير المراجعة")
+        if review.get("ready_for_import"):
+            st.success("✅ الملف جاهز للاستيراد — لا توجد تحذيرات.")
+        counts = review.get("counts", {})
+        if counts:
+            warn_cols = st.columns(min(len(counts), 4))
+            labels = {
+                "default_unit": "وحدة افتراضية",
+                "ambiguous_unit": "وحدة غامضة",
+                "missing_brand": "بدون علامة",
+                "missing_price": "بدون سعر",
+                "failed_image": "صورة فاشلة",
+                "category_rule_applied": "تصنيف من قاعدة",
+                "category_rule_conflict": "تعارض قواعد",
+            }
+            for idx, (key, value) in enumerate(counts.items()):
+                warn_cols[idx % len(warn_cols)].metric(labels.get(key, key), value)
+        items = review.get("items", [])
+        if items:
+            with st.expander(f"منتجات تحتاج مراجعة ({len(items)})", expanded=True):
+                st.dataframe(
+                    [
+                        {
+                            "Id": item.get("product_id"),
+                            "الاسم": item.get("name", "")[:50],
+                            "تحذيرات": ", ".join(item.get("warnings", [])),
+                            "UnitId": item.get("unit_id"),
+                            "BrandId": item.get("brand_id") or "—",
+                        }
+                        for item in items[:100]
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                )
+        stats = review.get("mapping_stats", {})
+        if stats:
+            m1, m2, m3 = st.columns(3)
+            m1.metric("استنتاج وحدات %", stats.get("inferred_pct", 0))
+            m2.metric("وحدة افتراضية %", stats.get("default_pct", 0))
+            m3.metric("بدون علامة %", stats.get("missing_brand_pct", 0))
+
     with st.expander("تفاصيل JSON", expanded=False):
         st.json(
             {
                 "run_key": r.run_key,
                 "id_range": r.id_range,
                 "stats": r.stats,
+                "mapping_stats": getattr(r, "mapping_stats", {}),
+                "review_counts": review.get("counts", {}),
             }
         )

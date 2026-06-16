@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from pipeline.match_types import UnitMatchResult
+
 if TYPE_CHECKING:
     from pipeline.catalog import Unit
 
@@ -169,6 +171,126 @@ def _piece_one(units: list[Unit]) -> tuple[int | None, str | None]:
     if piece_unit is None:
         return None, None
     return piece_unit.unit_id, "1"
+
+
+def _is_gram_or_kilo_unit(unit_id: int | None, units: list[Unit]) -> bool:
+    if unit_id is None:
+        return False
+    weight_markers = frozenset({"كيلو", "غرام", "kg", "kilo", "kilogram", "كجم", "g", "gram", "grams", "gr", "جم"})
+    for unit in units:
+        if unit.unit_id != unit_id:
+            continue
+        keywords = _unit_keywords(unit)
+        return bool(keywords & weight_markers)
+    return False
+
+
+def finalize_unit_for_export(
+    unit_id: int | None,
+    quantity_unit: str | None,
+    units: list[Unit],
+) -> tuple[int | None, str | None]:
+    """بعد المطابقة: غير غرام/كيلو → قطعة، ولا تُترك الوحدة فارغة."""
+    if unit_id is not None and _is_gram_or_kilo_unit(unit_id, units):
+        return unit_id, quantity_unit or "1"
+
+    piece_unit = _find_piece_unit(units)
+    if piece_unit is None:
+        return unit_id, quantity_unit
+
+    if _is_piece_unit_id(unit_id, units):
+        return unit_id, quantity_unit or "1"
+
+    return piece_unit.unit_id, "1"
+
+
+def _count_unit_pattern_hits(name: str) -> int:
+    normalized = (name or "").replace("'", "'").strip()
+    hits = 0
+    if any(p.search(normalized) for p in PIECE_PATTERNS):
+        hits += 1
+    if any(p.search(normalized) for p, _ in WEIGHT_PATTERNS):
+        hits += 1
+    if any(p.search(normalized) for p, _ in VOLUME_PATTERNS):
+        hits += 1
+    if any(p.search(normalized) for p, _ in OTHER_PATTERNS):
+        hits += 1
+    return hits
+
+
+def _infer_unit_meta(
+    name: str,
+    raw_unit_id: int | None,
+    raw_qty: str | None,
+    final_unit_id: int | None,
+    final_qty: str | None,
+    units: list[Unit],
+    *,
+    category_name: str,
+    subcategory_name: str,
+    ambiguous: bool,
+) -> UnitMatchResult:
+    if ambiguous:
+        return UnitMatchResult(final_unit_id, final_qty, "low", "ambiguous_unit")
+
+    if not name or not units:
+        return UnitMatchResult(final_unit_id, final_qty, "low", "no_marker")
+
+    allows_weight = category_allows_weight_units(category_name, subcategory_name)
+    normalized = (name or "").replace("'", "'").strip()
+
+    if raw_unit_id is not None:
+        piece_hit = _match_piece(normalized, units)[0] is not None
+        weight_hit = _has_weight_marker(normalized)
+        volume_hit = _has_volume_marker(normalized)
+
+        if piece_hit and not weight_hit and not volume_hit:
+            return UnitMatchResult(final_unit_id, final_qty, "medium", "pattern_piece")
+
+        if allows_weight and (weight_hit or volume_hit):
+            if weight_hit:
+                return UnitMatchResult(final_unit_id, final_qty, "high", "pattern_weight")
+            return UnitMatchResult(final_unit_id, final_qty, "high", "pattern_volume")
+
+        if not allows_weight and (weight_hit or volume_hit) and _is_piece_unit_id(final_unit_id, units):
+            return UnitMatchResult(final_unit_id, final_qty, "low", "category_forced_piece")
+
+        if raw_unit_id == final_unit_id:
+            return UnitMatchResult(final_unit_id, final_qty, "high", "pattern_other")
+
+    if _is_piece_unit_id(final_unit_id, units) and (final_qty or "1") == "1":
+        return UnitMatchResult(final_unit_id, final_qty, "low", "default_piece")
+
+    return UnitMatchResult(final_unit_id, final_qty, "medium", "pattern_matched")
+
+
+def match_unit_with_meta(
+    name: str,
+    units: list[Unit],
+    *,
+    category_name: str = "",
+    subcategory_name: str = "",
+) -> UnitMatchResult:
+    ambiguous = _count_unit_pattern_hits(name) > 1
+    raw_unit_id, raw_qty = match_unit(name, units)
+    unit_id, quantity_unit = match_unit_for_category(
+        name,
+        units,
+        category_name=category_name,
+        subcategory_name=subcategory_name,
+    )
+    final_id, final_qty = finalize_unit_for_export(unit_id, quantity_unit, units)
+    return _infer_unit_meta(
+        name,
+        raw_unit_id,
+        raw_qty,
+        final_id,
+        final_qty,
+        units,
+        category_name=category_name,
+        subcategory_name=subcategory_name,
+        ambiguous=ambiguous,
+    )
 
 
 def match_unit_for_category(

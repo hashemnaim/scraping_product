@@ -10,3 +10,6 @@ data/global_state.json
 .vercel
 uv.lock
 _uv/
+build/
+dist/
+*.spec.bak

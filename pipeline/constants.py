@@ -7,6 +7,8 @@ CATALOG_FILES = {
     "categories.xlsx": "التصنيفات الرئيسية (parent_id = 0)",
     "subcategories.xlsx": "التصنيفات الفرعية (parent_id > 0)",
     "units.xlsx": "الوحدات",
+    "brands.csv": "العلامات التجارية",
+    "category_mapping_rules.xlsx": "قواعد ربط التصنيف (اختياري)",
 }
 
 IMPORT_DEFAULTS = {
@@ -66,6 +68,38 @@ EXCEL_COLUMNS = [
     "CommonConditions",
     "IsBasic",
     "QuantityUnit",
+]
+
+MAP_PLACE_CATEGORIES = [
+    "مطاعم",
+    "مقاهي",
+    "سوبر ماركت",
+    "بقالة",
+    "صيدليات",
+    "مخابز",
+    "حلويات",
+    "محلات ملابس",
+    "صالونات تجميل",
+    "محلات إلكترونيات",
+    "محطات وقود",
+    "بنوك",
+    "مستشفيات",
+    "عيادات",
+    "مدارس",
+    "جيم",
+    "مكتبات",
+    "محلات أدوات منزلية",
+]
+
+PLACES_EXCEL_COLUMNS = [
+    "Id",
+    "Name",
+    "Address",
+    "Phone",
+    "Category",
+    "City",
+    "CoverageKm",
+    "MapsUrl",
 ]
 
 def _instashop_headless() -> bool:

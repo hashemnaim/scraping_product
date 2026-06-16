@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "review-report.schema.json",
+  "title": "ReviewReport",
+  "type": "object",
+  "required": ["products_total", "ready_for_import", "counts", "items", "mapping_stats"],
+  "properties": {
+    "products_total": { "type": "integer", "minimum": 0 },
+    "ready_for_import": { "type": "boolean" },
+    "counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "mapping_stats": {
+      "type": "object",
+      "properties": {
+        "inferred_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "default_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "missing_brand_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["product_id", "name", "warnings"],
+        "properties": {
+          "product_id": { "type": "integer" },
+          "name": { "type": "string" },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "unit_id": { "type": ["integer", "null"] },
+          "quantity_unit": { "type": ["string", "null"] },
+          "brand_id": { "type": ["integer", "null"] },
+          "details": { "type": "string" }
+        }
+      }
+    }
+  }
+}

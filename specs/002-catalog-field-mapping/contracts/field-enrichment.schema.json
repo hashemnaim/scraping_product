@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "field-enrichment.schema.json",
+  "title": "FieldEnrichment",
+  "type": "object",
+  "required": ["product_id", "product_name", "unit", "brand", "warnings"],
+  "properties": {
+    "product_id": { "type": "integer", "minimum": 1 },
+    "product_name": { "type": "string" },
+    "source_category": { "type": ["string", "null"] },
+    "resolved_sub_category_id": { "type": ["integer", "null"] },
+    "unit": { "$ref": "#/definitions/UnitMatchResult" },
+    "brand": { "$ref": "#/definitions/BrandMatchResult" },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/WarningFlag" },
+      "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "Confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "none"]
+    },
+    "WarningFlag": {
+      "type": "string",
+      "enum": [
+        "default_unit",
+        "ambiguous_unit",
+        "missing_brand",
+        "missing_price",
+        "failed_image",
+        "category_rule_applied",
+        "category_rule_conflict"
+      ]
+    },
+    "UnitMatchResult": {
+      "type": "object",
+      "required": ["confidence", "reason"],
+      "properties": {
+        "unit_id": { "type": ["integer", "null"] },
+        "quantity_unit": { "type": ["string", "null"] },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "reason": { "type": "string" }
+      }
+    },
+    "BrandMatchResult": {
+      "type": "object",
+      "required": ["confidence", "reason"],
+      "properties": {
+        "brand_id": { "type": ["integer", "null"] },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "reason": { "type": "string" }
+      }
+    }
+  }
+}

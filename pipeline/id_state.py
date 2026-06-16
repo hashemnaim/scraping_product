@@ -9,8 +9,9 @@ from pathlib import Path
 
 from pipeline.errors import CATEGORY_EXISTS, PipelineError, STATE_CORRUPT
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-STATE_PATH = PROJECT_ROOT / "data" / "global_state.json"
+from pipeline.paths import project_root
+
+STATE_PATH = project_root() / "data" / "global_state.json"
 
 
 @dataclass

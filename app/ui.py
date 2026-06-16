@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+
 from pipeline.paths import is_frozen, project_root, resource_root
 
 _PROJECT_ROOT = project_root()

@@ -12,13 +12,27 @@ import openpyxl
 from pipeline.constants import CATALOG_FILES
 from pipeline.errors import CATALOG_INVALID, PipelineError, UNITS_MISSING
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CATALOG_DIR = PROJECT_ROOT / "catalog"
+from pipeline.paths import catalog_dir, project_root
 
-MODULES_XLSX = CATALOG_DIR / "modules.xlsx"
-CATEGORIES_XLSX = CATALOG_DIR / "categories.xlsx"
-SUBCATEGORIES_XLSX = CATALOG_DIR / "subcategories.xlsx"
-UNITS_XLSX = CATALOG_DIR / "units.xlsx"
+
+def _catalog_dir() -> Path:
+    return catalog_dir()
+
+
+def _modules_xlsx() -> Path:
+    return _catalog_dir() / "modules.xlsx"
+
+
+def _categories_xlsx() -> Path:
+    return _catalog_dir() / "categories.xlsx"
+
+
+def _subcategories_xlsx() -> Path:
+    return _catalog_dir() / "subcategories.xlsx"
+
+
+def _units_xlsx() -> Path:
+    return _catalog_dir() / "units.xlsx"
 
 
 @dataclass
@@ -57,6 +71,20 @@ class Unit:
     aliases: list[str]
 
 
+@dataclass
+class CategoryMappingRule:
+    module_id: int
+    pattern: str
+    sub_category_id: int
+    priority: int = 0
+    active: bool = True
+    match_mode: str = "contains"
+
+
+def _category_mapping_rules_xlsx() -> Path:
+    return _catalog_dir() / "category_mapping_rules.xlsx"
+
+
 def clear_cache() -> None:
     """إعادة تحميل ملفات Excel بعد تعديلها."""
     _load_modules.cache_clear()
@@ -64,21 +92,22 @@ def clear_cache() -> None:
     _load_category_rows.cache_clear()
     _load_subcategory_rows.cache_clear()
     _load_all_units.cache_clear()
+    _load_category_mapping_rules.cache_clear()
 
 
 def save_catalog_file(filename: str, content: bytes) -> Path:
     """حفظ ملف كتالوج مرفوع من الواجهة إلى catalog/."""
     if filename not in CATALOG_FILES:
         raise ValueError(f"ملف غير مدعوم: {filename}")
-    CATALOG_DIR.mkdir(parents=True, exist_ok=True)
-    path = CATALOG_DIR / filename
+    _catalog_dir().mkdir(parents=True, exist_ok=True)
+    path = _catalog_dir() / filename
     path.write_bytes(content)
     clear_cache()
     return path
 
 
 def read_catalog_file(filename: str) -> bytes | None:
-    path = CATALOG_DIR / filename
+    path = _catalog_dir() / filename
     if path.exists():
         return path.read_bytes()
     return None
@@ -219,6 +248,15 @@ UNIT_FIELD_ALIASES = {
     "aliases": ("Aliases", "aliases"),
 }
 
+CATEGORY_RULE_FIELD_ALIASES = {
+    "module_id": ("ModuleId", "Module id", "module id"),
+    "pattern": ("Pattern", "pattern", "النمط", "نص"),
+    "sub_category_id": ("SubCategoryId", "Sub Category id", "sub_category_id"),
+    "priority": ("Priority", "priority", "الأولوية"),
+    "active": ("Active", "active", "نشط"),
+    "match_mode": ("MatchMode", "match_mode", "وضع المطابقة"),
+}
+
 
 def _module_name_to_id_map() -> dict[str, int]:
     mapping: dict[str, int] = {}
@@ -261,7 +299,7 @@ def _record_to_subcategory(record: dict[str, object]) -> SubCategory | None:
 
 
 def _seed_category_meta() -> dict[int, dict]:
-    seed_path = CATALOG_DIR / "seeds" / "admin_catalog.json"
+    seed_path = _catalog_dir() / "seeds" / "admin_catalog.json"
     if not seed_path.exists():
         return {}
     data = _load_json(seed_path)
@@ -425,7 +463,7 @@ def _extract_flat_records(path: Path, file_role: str) -> list[dict[str, object]]
 
 
 def _load_internal_category_rows() -> list[tuple[int, int, str]]:
-    records = _extract_mapped_rows(CATEGORIES_XLSX, CATEGORY_FIELD_ALIASES, ("category_id",))
+    records = _extract_mapped_rows(_categories_xlsx(), CATEGORY_FIELD_ALIASES, ("category_id",))
     if not records:
         return []
     module_name_map = _module_name_to_id_map()
@@ -446,7 +484,7 @@ def _load_internal_category_rows() -> list[tuple[int, int, str]]:
 
 def _load_internal_subcategory_rows() -> list[SubCategory]:
     records = _extract_mapped_rows(
-        SUBCATEGORIES_XLSX,
+        _subcategories_xlsx(),
         SUBCATEGORY_FIELD_ALIASES,
         ("module_id", "category_id", "sub_category_id"),
     )
@@ -486,19 +524,19 @@ def _merge_catalog_from_excel() -> tuple[list[tuple[int, int, str]], list[SubCat
     main_rows: list[tuple[int, int, str]] = []
     subs: list[SubCategory] = []
 
-    if CATEGORIES_XLSX.exists():
+    if _categories_xlsx().exists():
         internal = _load_internal_category_rows()
-        if internal and not _extract_flat_records(CATEGORIES_XLSX, "categories"):
+        if internal and not _extract_flat_records(_categories_xlsx(), "categories"):
             main_rows.extend(internal)
         else:
-            cat_records = _extract_flat_records(CATEGORIES_XLSX, "categories")
+            cat_records = _extract_flat_records(_categories_xlsx(), "categories")
             if cat_records:
                 rows, _ = _records_to_split_catalog(cat_records)
                 main_rows.extend(rows)
 
-    if SUBCATEGORIES_XLSX.exists():
+    if _subcategories_xlsx().exists():
         internal_subs = _load_internal_subcategory_rows()
-        flat_subs = _extract_flat_records(SUBCATEGORIES_XLSX, "subcategories")
+        flat_subs = _extract_flat_records(_subcategories_xlsx(), "subcategories")
         if internal_subs and not flat_subs:
             subs.extend(internal_subs)
         elif flat_subs:
@@ -525,7 +563,7 @@ def _split_flat_categories(path: Path) -> tuple[list[tuple[int, int, str]], list
 
 @lru_cache(maxsize=1)
 def _load_modules() -> list[Module]:
-    records = _extract_mapped_rows(MODULES_XLSX, MODULE_FIELD_ALIASES, ("module_id",))
+    records = _extract_mapped_rows(_modules_xlsx(), MODULE_FIELD_ALIASES, ("module_id",))
     modules: list[Module] = []
 
     if records:
@@ -555,10 +593,10 @@ def _load_modules() -> list[Module]:
             )
         return modules
 
-    if MODULES_XLSX.exists():
+    if _modules_xlsx().exists():
         return modules
 
-    json_path = CATALOG_DIR / "modules.json"
+    json_path = _catalog_dir() / "modules.json"
     if not json_path.exists():
         return modules
 
@@ -589,13 +627,13 @@ def _load_category_rows() -> list[tuple[int, int, str]]:
     if merged_main:
         return merged_main
 
-    if CATEGORIES_XLSX.exists():
-        flat = _split_flat_categories(CATEGORIES_XLSX)
+    if _categories_xlsx().exists():
+        flat = _split_flat_categories(_categories_xlsx())
         if flat and flat[0]:
             return flat[0]
 
     records = _extract_mapped_rows(
-        CATEGORIES_XLSX, CATEGORY_FIELD_ALIASES, ("category_id",)
+        _categories_xlsx(), CATEGORY_FIELD_ALIASES, ("category_id",)
     )
     if records:
         module_name_map = _module_name_to_id_map()
@@ -614,10 +652,10 @@ def _load_category_rows() -> list[tuple[int, int, str]]:
         if result:
             return result
 
-    if CATEGORIES_XLSX.exists():
+    if _categories_xlsx().exists():
         return []
 
-    json_path = CATALOG_DIR / "categories.json"
+    json_path = _catalog_dir() / "categories.json"
     if not json_path.exists():
         return []
 
@@ -633,14 +671,14 @@ def _load_subcategory_rows() -> list[SubCategory]:
     if merged_subs:
         return merged_subs
 
-    if SUBCATEGORIES_XLSX.exists():
-        flat_subs = _extract_flat_records(SUBCATEGORIES_XLSX, "subcategories")
+    if _subcategories_xlsx().exists():
+        flat_subs = _extract_flat_records(_subcategories_xlsx(), "subcategories")
         if flat_subs:
             _, sub_rows = _records_to_split_catalog(flat_subs)
             return sub_rows
 
         records = _extract_mapped_rows(
-            SUBCATEGORIES_XLSX,
+            _subcategories_xlsx(),
             SUBCATEGORY_FIELD_ALIASES,
             ("module_id", "category_id", "sub_category_id"),
         )
@@ -652,10 +690,10 @@ def _load_subcategory_rows() -> list[SubCategory]:
                     subs.append(sub)
             return subs
 
-    if SUBCATEGORIES_XLSX.exists():
+    if _subcategories_xlsx().exists():
         return []
 
-    json_path = CATALOG_DIR / "categories.json"
+    json_path = _catalog_dir() / "categories.json"
     if not json_path.exists():
         return []
 
@@ -681,7 +719,7 @@ def _load_subcategory_rows() -> list[SubCategory]:
 
 @lru_cache(maxsize=1)
 def _load_all_units() -> list[Unit]:
-    records = _extract_mapped_rows(UNITS_XLSX, UNIT_FIELD_ALIASES, ("unit_id",))
+    records = _extract_mapped_rows(_units_xlsx(), UNIT_FIELD_ALIASES, ("unit_id",))
     if records:
         units: list[Unit] = []
         for record in records:
@@ -699,10 +737,10 @@ def _load_all_units() -> list[Unit]:
                 units.append(Unit(mid, unit_id, name_ar, aliases))
         return units
 
-    if UNITS_XLSX.exists():
+    if _units_xlsx().exists():
         return []
 
-    path = CATALOG_DIR / "units.seed.json"
+    path = _catalog_dir() / "units.seed.json"
     if path.exists():
         data = _load_json(path).get("units", [])
         return [
@@ -717,13 +755,60 @@ def _load_all_units() -> list[Unit]:
     return []
 
 
+@lru_cache(maxsize=8)
+def _load_category_mapping_rules(module_id: int | None = None) -> list[CategoryMappingRule]:
+    records = _extract_mapped_rows(
+        _category_mapping_rules_xlsx(),
+        CATEGORY_RULE_FIELD_ALIASES,
+        ("pattern", "sub_category_id"),
+    )
+    rules: list[CategoryMappingRule] = []
+    for record in records:
+        pattern = _cell_str(record.get("pattern"))
+        sub_id = _safe_int(record.get("sub_category_id"))
+        if not pattern or sub_id is None:
+            continue
+        row_module = _safe_int(record.get("module_id"))
+        if module_id is not None and row_module is not None and row_module != module_id:
+            continue
+        if module_id is not None and row_module is None:
+            continue
+        active_raw = record.get("active")
+        active = True
+        if active_raw is not None:
+            text = _cell_str(active_raw).lower()
+            if text in ("0", "false", "no", "لا"):
+                active = False
+        priority = _safe_int(record.get("priority")) or 0
+        match_mode = _cell_str(record.get("match_mode")).lower() or "contains"
+        if match_mode not in ("contains", "equals"):
+            match_mode = "contains"
+        rules.append(
+            CategoryMappingRule(
+                module_id=row_module or (module_id or 0),
+                pattern=pattern,
+                sub_category_id=sub_id,
+                priority=priority,
+                active=active,
+                match_mode=match_mode,
+            )
+        )
+    rules.sort(key=lambda rule: (rule.priority, len(rule.pattern)), reverse=True)
+    return rules
+
+
+def load_category_mapping_rules(module_id: int) -> list[CategoryMappingRule]:
+    return _load_category_mapping_rules(module_id)
+
+
 def catalog_sources() -> dict[str, bool]:
     """أي ملفات Excel موجودة."""
     return {
-        "modules.xlsx": MODULES_XLSX.exists(),
-        "categories.xlsx": CATEGORIES_XLSX.exists(),
-        "subcategories.xlsx": SUBCATEGORIES_XLSX.exists(),
-        "units.xlsx": UNITS_XLSX.exists(),
+        "modules.xlsx": _modules_xlsx().exists(),
+        "categories.xlsx": _categories_xlsx().exists(),
+        "subcategories.xlsx": _subcategories_xlsx().exists(),
+        "units.xlsx": _units_xlsx().exists(),
+        "category_mapping_rules.xlsx": _category_mapping_rules_xlsx().exists(),
     }
 
 

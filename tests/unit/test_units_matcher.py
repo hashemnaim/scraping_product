@@ -1,7 +1,12 @@
 """اختبارات مطابقة الوحدات — القطعة أولاً."""
 
 from pipeline.catalog import Unit
-from pipeline.units_matcher import match_unit, match_unit_for_category
+from pipeline.units_matcher import (
+    finalize_unit_for_export,
+    match_unit,
+    match_unit_for_category,
+    match_unit_with_meta,
+)
 
 
 def _module3_units() -> list[Unit]:
@@ -141,3 +146,72 @@ def test_non_exception_piece_count_unchanged():
     )
     assert unit_id == 7
     assert quantity == "2"
+
+
+def test_finalize_ml_becomes_piece():
+    units = _module3_units()
+    unit_id, quantity = finalize_unit_for_export(14, "500", units)
+    assert unit_id == 7
+    assert quantity == "1"
+
+
+def test_finalize_gram_stays():
+    units = _module3_units()
+    unit_id, quantity = finalize_unit_for_export(10, "250", units)
+    assert unit_id == 10
+    assert quantity == "250"
+
+
+def test_finalize_empty_becomes_piece():
+    units = _module3_units()
+    unit_id, quantity = finalize_unit_for_export(None, None, units)
+    assert unit_id == 7
+    assert quantity == "1"
+
+
+def test_finalize_piece_keeps_count():
+    units = _module3_units()
+    unit_id, quantity = finalize_unit_for_export(7, "2", units)
+    assert unit_id == 7
+    assert quantity == "2"
+
+
+def test_match_unit_with_meta_kilogram_high_confidence():
+    units = _module3_units()
+    result = match_unit_with_meta(
+        "طماطم 1 كيلو",
+        units,
+        category_name="الفواكه والخضروات",
+        subcategory_name="خضروات",
+    )
+    assert result.unit_id == 9
+    assert result.quantity_unit == "1"
+    assert result.confidence == "high"
+    assert result.reason == "pattern_weight"
+
+
+def test_match_unit_with_meta_ml_forced_piece_low():
+    units = _module3_units()
+    result = match_unit_with_meta(
+        "حليب 500 مل",
+        units,
+        category_name="سوبرماركت",
+        subcategory_name="ألبان",
+    )
+    assert result.unit_id == 7
+    assert result.quantity_unit == "1"
+    assert result.confidence == "low"
+    assert result.reason == "category_forced_piece"
+
+
+def test_match_unit_with_meta_default_piece_special_offer():
+    units = _module3_units()
+    result = match_unit_with_meta(
+        "عرض خاص",
+        units,
+        category_name="سناكس",
+        subcategory_name="مقبلات",
+    )
+    assert result.unit_id == 7
+    assert result.confidence == "low"
+    assert result.reason in ("default_piece", "no_marker")

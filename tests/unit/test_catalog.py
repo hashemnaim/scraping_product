@@ -35,9 +35,8 @@ def test_module_1_fruit_categories():
 def test_require_units_raises_when_empty(monkeypatch, tmp_path):
     cat = tmp_path / "catalog"
     cat.mkdir()
-    monkeypatch.setattr(catalog, "CATALOG_DIR", cat)
-    monkeypatch.setattr(catalog, "MODULES_XLSX", cat / "modules.xlsx")
-    monkeypatch.setattr(catalog, "UNITS_XLSX", cat / "units.xlsx")
+    monkeypatch.setattr(catalog, "_catalog_dir", lambda: cat)
+    monkeypatch.setattr(catalog, "_units_xlsx", lambda: cat / "units.xlsx")
     catalog.clear_cache()
 
     with pytest.raises(PipelineError) as exc:

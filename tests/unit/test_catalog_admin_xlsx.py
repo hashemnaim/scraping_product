@@ -14,11 +14,11 @@ from pipeline import catalog
 def catalog_dir(tmp_path, monkeypatch):
     cat = tmp_path / "catalog"
     cat.mkdir()
-    monkeypatch.setattr(catalog, "CATALOG_DIR", cat)
-    monkeypatch.setattr(catalog, "MODULES_XLSX", cat / "modules.xlsx")
-    monkeypatch.setattr(catalog, "CATEGORIES_XLSX", cat / "categories.xlsx")
-    monkeypatch.setattr(catalog, "SUBCATEGORIES_XLSX", cat / "subcategories.xlsx")
-    monkeypatch.setattr(catalog, "UNITS_XLSX", cat / "units.xlsx")
+    monkeypatch.setattr(catalog, "_catalog_dir", lambda: cat)
+    monkeypatch.setattr(catalog, "_modules_xlsx", lambda: cat / "modules.xlsx")
+    monkeypatch.setattr(catalog, "_categories_xlsx", lambda: cat / "categories.xlsx")
+    monkeypatch.setattr(catalog, "_subcategories_xlsx", lambda: cat / "subcategories.xlsx")
+    monkeypatch.setattr(catalog, "_units_xlsx", lambda: cat / "units.xlsx")
     catalog.clear_cache()
     return cat
 

@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-06-11
 
 ## Active Technologies
+- Python 3.11+ (المشروع `.venv` على 3.14) + streamlit, openpyxl, pandas (كتالوج), requests, playwright — بدون تبعيات جديدة للمرحلة P1/P2 (002-catalog-field-mapping)
+- `catalog/` (xlsx/csv)، `data/global_state.json`، `data/run_history.jsonl` (جديد)، `output/` (002-catalog-field-mapping)
 
 - Python 3.11+ (المشروع يستخدم 3.14 في `.venv`) + requests, beautifulsoup4, openpyxl, lxml, Pillow, playwright, **streamlit** (جديد), **pytest** (اختبارات) (001-category-product-export)
 
@@ -22,6 +24,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (المشروع يستخدم 3.14 في `.venv`): Follow standard conventions
 
 ## Recent Changes
+- 002-catalog-field-mapping: Added Python 3.11+ (المشروع `.venv` على 3.14) + streamlit, openpyxl, pandas (كتالوج), requests, playwright — بدون تبعيات جديدة للمرحلة P1/P2
 
 - 001-category-product-export: Added Python 3.11+ (المشروع يستخدم 3.14 في `.venv`) + requests, beautifulsoup4, openpyxl, lxml, Pillow, playwright, **streamlit** (جديد), **pytest** (اختبارات)
 

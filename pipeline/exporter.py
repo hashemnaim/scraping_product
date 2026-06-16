@@ -36,7 +36,7 @@ def build_row(
         "Image": image_path,
         "CategoryId": category_id,
         "SubCategoryId": sub_category_id,
-        "BrandId": defaults.get("BrandId", ""),
+        "BrandId": product.get("brand_id", defaults.get("BrandId", "")),
         "UnitId": product.get("unit_id", defaults.get("UnitId", "")),
         "Stock": defaults.get("Stock", 100),
         "Price": product.get("price", ""),

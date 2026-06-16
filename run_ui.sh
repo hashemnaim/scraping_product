@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
 export PYTHONPATH="${PWD}:${PYTHONPATH}"
-exec python3 desktop_launcher.py "$@"
+PYTHON="${PWD}/.venv/bin/python"
+if [[ ! -x "$PYTHON" ]]; then
+  PYTHON=python3
+fi
+exec "$PYTHON" desktop_launcher.py "$@"

@@ -28,6 +28,7 @@ from pipeline.constants import MAP_PLACE_CATEGORIES
 from pipeline.errors import PipelineError
 from pipeline.field_mapping import WORKFLOW_TIP, build_pre_scrape_summary, field_source_rows
 from pipeline.maps_runner import MapsRunRequest, run_maps_job
+from pipeline.images import images_folder_from_excel
 from pipeline.runner import CategoryRunRequest, run_category_job
 
 st.set_page_config(
@@ -776,7 +777,13 @@ with tab_website:
             output_dir = st.text_input("📂 مجلد الإخراج", value="output")
             excel_filename = st.text_input("📊 ملف Excel", value=sub.excel_filename)
         with c_left:
-            images_folder = st.text_input("🖼️ مجلد الصور", value=sub.images_folder)
+            images_folder = images_folder_from_excel(excel_filename)
+            st.text_input(
+                "🖼️ مجلد الصور",
+                value=images_folder,
+                disabled=True,
+                help="يُشتق تلقائياً من اسم ملف Excel",
+            )
 
         rescrape = st.checkbox("🔄 إعادة سحب — استبدال نفس نطاق المعرفات", value=False)
         apply_category_rules = st.checkbox(
@@ -787,7 +794,9 @@ with tab_website:
 
         st.markdown(
             f'<p style="color:#5a7a65;font-size:0.85rem;margin:0.5rem 0;">'
-            f'المسار: <code>{output_dir}/{sub.output_slug}/</code></p>',
+            f'المسار: <code>{output_dir}/{sub.output_slug}/</code> — '
+            f'Excel: <code>{excel_filename}</code> — '
+            f'صور: <code>{images_folder}/</code></p>',
             unsafe_allow_html=True,
         )
 
@@ -840,7 +849,6 @@ with tab_website:
                     source_url=source_url,
                     output_dir=output_dir,
                     excel_filename=excel_filename,
-                    images_folder=images_folder,
                     max_pages=max_pages,
                     start_page=start_page,
                     rescrape=rescrape,

@@ -173,6 +173,8 @@ def build_search_tags(
     if clean_product:
         add(*_english_variants(clean_product))
 
+    add(*_arabic_variants(clean_product or product_name))
+
     for label in (category_name, subcategory_name, source_category):
         add(label)
         add(*_arabic_variants(label))

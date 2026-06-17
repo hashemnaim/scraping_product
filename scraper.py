@@ -4,7 +4,7 @@ Product Scraper — غلاف CLI يستدعي pipeline.run_category_job
 الاستخدام:
     python scraper.py --url "https://seoudisupermarket.com/ar/fruits-vegetables-2/fruits" \\
         --output output --module-id 2 --category-id 253 --sub-category-id 10 \\
-        --excel-filename fruits.xlsx --images-folder fruits_images --max-pages 0
+        --excel-filename fruits.xlsx --max-pages 0
 """
 
 import argparse
@@ -24,7 +24,6 @@ def main():
     parser.add_argument("--sub-category-id", type=int, required=True, help="SubCategoryId")
     parser.add_argument("--max-pages", type=int, default=0, help="0 = كل الصفحات")
     parser.add_argument("--excel-filename", default="products.xlsx")
-    parser.add_argument("--images-folder", default="product_images")
     parser.add_argument(
         "--mode",
         choices=["auto", "html", "graphql", "instashop"],
@@ -51,7 +50,6 @@ def main():
         source_url=args.url,
         output_dir=args.output,
         excel_filename=args.excel_filename,
-        images_folder=args.images_folder,
         max_pages=args.max_pages,
         rescrape=args.rescrape,
         mode=args.mode,

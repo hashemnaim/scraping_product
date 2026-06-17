@@ -92,8 +92,10 @@ def run_category_job(
 
     run_key = make_run_key(request.module_id, request.category_id, request.sub_category_id)
     output_base = project_root() / request.output_dir / sub.output_slug
-    images_dir = output_base / (request.images_folder or sub.images_folder)
-    excel_path = output_base / (request.excel_filename or sub.excel_filename)
+    excel_filename = request.excel_filename or sub.excel_filename
+    excel_path = output_base / excel_filename
+    images_folder_name = images.images_folder_from_excel(excel_filename)
+    images_dir = output_base / images_folder_name
     images_dir.mkdir(parents=True, exist_ok=True)
 
     if request.rescrape:
@@ -144,9 +146,7 @@ def run_category_job(
         if ok:
             images_ok += 1
             bytes_saved += saved
-            rel_path = images.image_relative_path(
-                request.images_folder or sub.images_folder, product_id
-            )
+            rel_path = images.image_relative_path(images_folder_name, product_id)
             product["image_ok"] = True
         else:
             images_failed += 1
@@ -204,7 +204,7 @@ def run_category_job(
             exporter.build_row(
                 product_id,
                 product,
-                request.images_folder or sub.images_folder,
+                images_folder_name,
                 request.module_id,
                 request.category_id,
                 resolved_sub_id,

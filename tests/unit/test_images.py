@@ -1,6 +1,6 @@
 """اختبارات تسمية الصور."""
 
-from pipeline.images import image_filename, image_relative_path
+from pipeline.images import image_filename, image_relative_path, images_folder_from_excel
 
 
 def test_filename_padding_three_digits():
@@ -14,3 +14,9 @@ def test_filename_expands_beyond_999():
 
 def test_relative_path():
     assert image_relative_path("fruits_images", 7) == "fruits_images/product_007.webp"
+
+
+def test_images_folder_from_excel():
+    assert images_folder_from_excel("fruits.xlsx") == "fruits"
+    assert images_folder_from_excel("products.xlsx") == "products"
+    assert images_folder_from_excel("") == "product_images"

@@ -47,3 +47,24 @@ def test_tags_generate_token_combinations():
     assert "Red Bull" in parts
     assert "Energy Drink" in parts
     assert "red bull energy drink" in parts
+    assert "Red" in parts
+    assert "Bull" in parts
+    assert "Energy" in parts
+    assert "Drink" in parts
+
+
+def test_tags_split_arabic_product_name_into_words():
+    tags = build_search_tags(
+        product_name="تفاح أحمر عماني",
+        category_name="فواكه",
+        subcategory_name="تفاح",
+    )
+    parts = [part.strip() for part in tags.split(",")]
+
+    assert "تفاح أحمر عماني" in parts
+    assert "تفاح" in parts
+    assert "أحمر" in parts
+    assert "عماني" in parts
+    assert "التفاح" in parts
+    assert "الأحمر" in parts
+    assert "العماني" in parts

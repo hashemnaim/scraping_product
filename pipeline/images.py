@@ -19,6 +19,12 @@ def image_filename(product_id: int) -> str:
     return f"product_{product_id:0{width}d}.webp"
 
 
+def images_folder_from_excel(excel_filename: str) -> str:
+    """اسم مجلد الصور من اسم ملف Excel (بدون الامتداد)."""
+    stem = Path((excel_filename or "").strip()).stem
+    return stem or "product_images"
+
+
 def image_relative_path(images_folder: str, product_id: int) -> str:
     return f"{images_folder}/{image_filename(product_id)}"
 

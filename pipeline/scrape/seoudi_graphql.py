@@ -56,6 +56,25 @@ query ProductDetail($sku: String!) {
 }
 """
 
+CATEGORY_RESOLVE_QUERY = """
+query ResolveCategory($urlPath: String!, $urlKey: String!) {
+  byPath: categoryList(filters: { url_path: { eq: $urlPath } }) {
+    url_path
+    products(pageSize: 1, currentPage: 1) {
+      total_count
+    }
+  }
+  byKey: categoryList(filters: { url_key: { eq: $urlKey } }) {
+    name
+    url_path
+    url_key
+    products(pageSize: 1, currentPage: 1) {
+      total_count
+    }
+  }
+}
+"""
+
 
 def _throttle():
     delay = SCRAPE_SETTINGS["delay_between_requests"]
@@ -93,6 +112,52 @@ def parse_seoudi_url(url: str):
     return locale, category_path, start_page
 
 
+def _pick_category_by_url_key(categories: list[dict], category_path: str) -> dict | None:
+    if not categories:
+        return None
+    if len(categories) == 1:
+        return categories[0]
+
+    parent_prefix = "/".join(category_path.split("/")[:-1])
+    parent_segment = parent_prefix.split("/")[-1] if parent_prefix else ""
+
+    def score(category: dict) -> tuple[int, int]:
+        url_path = category.get("url_path", "")
+        total_count = (category.get("products") or {}).get("total_count") or 0
+        path_match = 0
+        if parent_prefix and url_path.startswith(f"{parent_prefix}/"):
+            path_match = 3
+        elif parent_segment and url_path.split("/")[-2:][0] == parent_segment:
+            path_match = 2
+        elif parent_segment and parent_segment in url_path.split("/"):
+            path_match = 1
+        return path_match, total_count
+
+    return max(categories, key=score)
+
+
+def resolve_graphql_category_path(session: requests.Session, category_path: str) -> str:
+    """حل مسار الفئة من رابط الموقع إلى url_path الفعلي في GraphQL."""
+    url_key = category_path.rsplit("/", 1)[-1]
+    data = _graphql_request(
+        session,
+        CATEGORY_RESOLVE_QUERY,
+        {"urlPath": category_path, "urlKey": url_key},
+    )
+    by_path = data.get("byPath") or []
+    if by_path and (by_path[0].get("products") or {}).get("total_count", 0) > 0:
+        return by_path[0]["url_path"]
+
+    by_key = data.get("byKey") or []
+    picked = _pick_category_by_url_key(by_key, category_path)
+    if picked and picked.get("url_path"):
+        return picked["url_path"]
+
+    if by_path:
+        return by_path[0]["url_path"]
+    return category_path
+
+
 def _upgrade_image_url(url: str) -> str:
     if not url or not SCRAPE_SETTINGS["download_full_image"]:
         return url
@@ -123,6 +188,7 @@ def scrape_seoudi_category(
     start_page: int | None = None,
 ) -> list[dict]:
     locale, category_path, url_start_page = parse_seoudi_url(url)
+    graphql_category_path = resolve_graphql_category_path(session, category_path)
     base_url = f"https://seoudisupermarket.com/{locale}"
     products = []
     pages_fetched = 0
@@ -138,7 +204,7 @@ def scrape_seoudi_category(
             session,
             CATEGORY_PRODUCTS_QUERY,
             {
-                "urlPath": category_path,
+                "urlPath": graphql_category_path,
                 "pageSize": SCRAPE_SETTINGS["graphql_page_size"],
                 "currentPage": current_page,
             },

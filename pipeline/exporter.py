@@ -29,6 +29,10 @@ def build_row(
 
     tags = product.get("tags") or product.get("category", "") or defaults.get("Tags", "")
 
+    quantity_unit = product.get("quantity_unit")
+    if quantity_unit is None:
+        quantity_unit = defaults.get("QuantityUnit")
+
     return {
         "Id": product_id,
         "Name": product.get("name", ""),
@@ -58,7 +62,7 @@ def build_row(
         "IsPrescriptionReq": defaults.get("IsPrescriptionReq", 0),
         "CommonConditions": defaults.get("CommonConditions", ""),
         "IsBasic": defaults.get("IsBasic", 1),
-        "QuantityUnit": product.get("quantity_unit", defaults.get("QuantityUnit", "")),
+        "QuantityUnit": quantity_unit,
     }
 
 

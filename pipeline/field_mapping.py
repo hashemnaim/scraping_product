@@ -26,7 +26,7 @@ FIELD_SOURCES: dict[str, dict[str, str]] = {
     "QuantityUnit": {
         "label_ar": "كمية الوحدة",
         "source": FieldSource.INFERRED_NAME.value,
-        "source_ar": "مستنتج من اسم المنتج (مثل 250، 1)",
+        "source_ar": "رقم مستنتج من اسم المنتج (مثل 250 أو 1) — يُكتب في Excel كقيمة رقمية",
         "icon": "🔢",
     },
     "BrandId": {
@@ -38,7 +38,7 @@ FIELD_SOURCES: dict[str, dict[str, str]] = {
     "Name": {
         "label_ar": "الاسم",
         "source": FieldSource.SCRAPED.value,
-        "source_ar": "من الموقع مباشرة",
+        "source_ar": "من الموقع بعد تحويله للعربية (أو كما هو إن كان عربياً)",
         "icon": "🌐",
     },
     "Price": {
@@ -50,7 +50,7 @@ FIELD_SOURCES: dict[str, dict[str, str]] = {
     "Image": {
         "label_ar": "الصورة",
         "source": FieldSource.SCRAPED.value,
-        "source_ar": "من الموقع (تُحفظ WebP)",
+        "source_ar": "من الموقع (تُحفظ WebP مضغوطة حتى 50KB)",
         "icon": "🖼️",
     },
 }

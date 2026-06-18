@@ -8,6 +8,10 @@ import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+# Streamlit يشغّل الملف من app/ — أضف جذر المستودع قبل استيراد pipeline.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from pipeline.paths import is_frozen, project_root, resource_root
 

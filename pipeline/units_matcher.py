@@ -71,11 +71,12 @@ _WEIGHT_CATEGORY_KEYWORDS = (
 )
 
 
-def _normalize_quantity(raw: str) -> str:
+def _normalize_quantity(raw: str) -> int | float:
     quantity = raw.replace(",", ".")
-    if quantity.endswith(".0"):
-        quantity = quantity[:-2]
-    return quantity
+    if "." in quantity:
+        value = float(quantity)
+        return int(value) if value.is_integer() else value
+    return int(quantity)
 
 
 def _unit_keywords(unit: Unit) -> set[str]:
@@ -106,7 +107,7 @@ def _find_piece_unit(units: list[Unit]) -> Unit | None:
     return None
 
 
-def _match_piece(name: str, units: list[Unit]) -> tuple[int | None, str | None]:
+def _match_piece(name: str, units: list[Unit]) -> tuple[int | None, int | float | None]:
     piece_unit = _find_piece_unit(units)
     if piece_unit is None:
         return None, None
@@ -118,7 +119,7 @@ def _match_piece(name: str, units: list[Unit]) -> tuple[int | None, str | None]:
         groups = match.groups()
         if groups:
             return piece_unit.unit_id, _normalize_quantity(groups[0])
-        return piece_unit.unit_id, "1"
+        return piece_unit.unit_id, 1
     return None, None
 
 
@@ -126,7 +127,7 @@ def _match_by_patterns(
     name: str,
     units: list[Unit],
     patterns: list[tuple[re.Pattern[str], frozenset[str]]],
-) -> tuple[int | None, str | None]:
+) -> tuple[int | None, int | float | None]:
     for pattern, markers in patterns:
         match = pattern.search(name)
         if not match:
@@ -166,11 +167,11 @@ def _has_volume_marker(name: str) -> bool:
     return any(pattern.search(name) for pattern, _ in VOLUME_PATTERNS)
 
 
-def _piece_one(units: list[Unit]) -> tuple[int | None, str | None]:
+def _piece_one(units: list[Unit]) -> tuple[int | None, int | float | None]:
     piece_unit = _find_piece_unit(units)
     if piece_unit is None:
         return None, None
-    return piece_unit.unit_id, "1"
+    return piece_unit.unit_id, 1
 
 
 def _is_gram_or_kilo_unit(unit_id: int | None, units: list[Unit]) -> bool:
@@ -187,21 +188,21 @@ def _is_gram_or_kilo_unit(unit_id: int | None, units: list[Unit]) -> bool:
 
 def finalize_unit_for_export(
     unit_id: int | None,
-    quantity_unit: str | None,
+    quantity_unit: int | float | None,
     units: list[Unit],
-) -> tuple[int | None, str | None]:
+) -> tuple[int | None, int | float | None]:
     """بعد المطابقة: غير غرام/كيلو → قطعة، ولا تُترك الوحدة فارغة."""
     if unit_id is not None and _is_gram_or_kilo_unit(unit_id, units):
-        return unit_id, quantity_unit or "1"
+        return unit_id, quantity_unit if quantity_unit is not None else 1
 
     piece_unit = _find_piece_unit(units)
     if piece_unit is None:
         return unit_id, quantity_unit
 
     if _is_piece_unit_id(unit_id, units):
-        return unit_id, quantity_unit or "1"
+        return unit_id, quantity_unit if quantity_unit is not None else 1
 
-    return piece_unit.unit_id, "1"
+    return piece_unit.unit_id, 1
 
 
 def _count_unit_pattern_hits(name: str) -> int:
@@ -221,9 +222,9 @@ def _count_unit_pattern_hits(name: str) -> int:
 def _infer_unit_meta(
     name: str,
     raw_unit_id: int | None,
-    raw_qty: str | None,
+    raw_qty: int | float | None,
     final_unit_id: int | None,
-    final_qty: str | None,
+    final_qty: int | float | None,
     units: list[Unit],
     *,
     category_name: str,
@@ -258,7 +259,7 @@ def _infer_unit_meta(
         if raw_unit_id == final_unit_id:
             return UnitMatchResult(final_unit_id, final_qty, "high", "pattern_other")
 
-    if _is_piece_unit_id(final_unit_id, units) and (final_qty or "1") == "1":
+    if _is_piece_unit_id(final_unit_id, units) and (final_qty or 1) == 1:
         return UnitMatchResult(final_unit_id, final_qty, "low", "default_piece")
 
     return UnitMatchResult(final_unit_id, final_qty, "medium", "pattern_matched")
@@ -299,7 +300,7 @@ def match_unit_for_category(
     *,
     category_name: str = "",
     subcategory_name: str = "",
-) -> tuple[int | None, str | None]:
+) -> tuple[int | None, int | float | None]:
     """مطابقة وحدة مع قواعد التصنيف: خارج الاستثناءات → g/kg/ml تصبح قطعة + 1."""
     unit_id, quantity_unit = match_unit(name, units)
     if not name or not units:
@@ -318,7 +319,7 @@ def match_unit_for_category(
     return unit_id, quantity_unit
 
 
-def match_unit(name: str, units: list[Unit]) -> tuple[int | None, str | None]:
+def match_unit(name: str, units: list[Unit]) -> tuple[int | None, int | float | None]:
     """يرجع (unit_id, quantity_unit) من اسم المنتج."""
     if not name or not units:
         return None, None

@@ -27,7 +27,7 @@ class WarningFlag(str, Enum):
 @dataclass(frozen=True)
 class UnitMatchResult:
     unit_id: int | None
-    quantity_unit: str | None
+    quantity_unit: int | float | None
     confidence: str  # high | medium | low
     reason: str
 

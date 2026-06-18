@@ -35,7 +35,7 @@ IMPORT_DEFAULTS = {
     "IsPrescriptionReq": 0,
     "CommonConditions": "",
     "IsBasic": 1,
-    "QuantityUnit": "",
+    "QuantityUnit": None,
 }
 
 EXCEL_COLUMNS = [
@@ -118,6 +118,11 @@ SCRAPE_SETTINGS = {
     "fetch_descriptions": False,
     "download_full_image": True,
     "webp_quality": 85,
+    "max_image_bytes": 50 * 1024,
+    "webp_quality_start": 85,
+    "webp_quality_min": 40,
+    "max_image_dimension": 1024,
+    "min_image_dimension": 320,
     "instashop_headless": _instashop_headless(),
     "instashop_scroll_pause": 1.5,
 }

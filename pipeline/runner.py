@@ -24,6 +24,7 @@ from pipeline.category_rules import resolve_subcategory
 from pipeline.match_types import FieldEnrichment, WarningFlag
 from pipeline.review_report import build_review_report
 from pipeline.run_history import append_run_log
+from pipeline.arabic_localizer import contains_arabic, localize_product_name
 from pipeline.tags import build_search_tags
 from pipeline.units_matcher import match_unit_with_meta
 from pipeline.errors import SCRAPE_FAILED, PipelineError
@@ -153,20 +154,26 @@ def run_category_job(
             product["image_ok"] = False
 
         product["image_path"] = rel_path
-        product["tags"] = build_search_tags(
-            product_name=product.get("name", ""),
-            category_name=category_name,
-            subcategory_name=sub.name_ar,
-            source_category=product.get("category", ""),
-        )
 
+        source_name = product.get("name", "")
         unit_match = match_unit_with_meta(
-            product.get("name", ""),
+            source_name,
             module_units,
             category_name=category_name,
             subcategory_name=sub.name_ar,
         )
-        brand_match = match_brand_with_meta(product.get("name", ""), request.module_id)
+        brand_match = match_brand_with_meta(source_name, request.module_id)
+
+        arabic_name = localize_product_name(source_name)
+        product["name"] = arabic_name
+        source_category = product.get("category", "")
+        product["tags"] = build_search_tags(
+            product_name=arabic_name,
+            category_name=category_name,
+            subcategory_name=sub.name_ar,
+            source_category=source_category if contains_arabic(source_category) else "",
+            arabic_only=True,
+        )
 
         if unit_match.unit_id is not None:
             product["unit_id"] = unit_match.unit_id
@@ -191,7 +198,7 @@ def run_category_job(
         enrichments.append(
             FieldEnrichment(
                 product_id=product_id,
-                product_name=product.get("name", ""),
+                product_name=arabic_name,
                 unit=unit_match,
                 brand=brand_match,
                 warnings=rule_warnings,

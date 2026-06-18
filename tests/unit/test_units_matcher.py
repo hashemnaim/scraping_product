@@ -24,49 +24,49 @@ def test_piece_wins_over_weight():
     units = _module3_units()
     unit_id, quantity = match_unit("Chips 150g - 1 Piece", units)
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_piece_with_ml_and_count():
     units = _module3_units()
     unit_id, quantity = match_unit("Water 500ml - 2 Piece", units)
     assert unit_id == 7
-    assert quantity == "2"
+    assert quantity == 2
 
 
 def test_kilogram_only():
     units = _module3_units()
     unit_id, quantity = match_unit("Tomato 1 kg", units)
     assert unit_id == 9
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_gram_only():
     units = _module3_units()
     unit_id, quantity = match_unit("Cheese 250 g", units)
     assert unit_id == 10
-    assert quantity == "250"
+    assert quantity == 250
 
 
 def test_ml_only():
     units = _module3_units()
     unit_id, quantity = match_unit("Juice 500ml", units)
     assert unit_id == 14
-    assert quantity == "500"
+    assert quantity == 500
 
 
 def test_arabic_piece():
     units = _module3_units()
     unit_id, quantity = match_unit("شيبس 150g - 2 قطعة", units)
     assert unit_id == 7
-    assert quantity == "2"
+    assert quantity == 2
 
 
 def test_bilqitaa_without_number():
     units = _module3_units()
     unit_id, quantity = match_unit("منتج بالقطعة", units)
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_no_unit_marker():
@@ -85,7 +85,7 @@ def test_exception_category_keeps_kilogram():
         subcategory_name="فواكه",
     )
     assert unit_id == 9
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_exception_category_keeps_gram():
@@ -97,7 +97,7 @@ def test_exception_category_keeps_gram():
         subcategory_name="الجبنة واللبنة",
     )
     assert unit_id == 10
-    assert quantity == "250"
+    assert quantity == 250
 
 
 def test_non_exception_weight_becomes_piece():
@@ -109,7 +109,7 @@ def test_non_exception_weight_becomes_piece():
         subcategory_name="بطاطس و مقبلات",
     )
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_non_exception_ml_becomes_piece():
@@ -121,7 +121,7 @@ def test_non_exception_ml_becomes_piece():
         subcategory_name="مقبلات",
     )
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_non_exception_piece_with_weight_unchanged():
@@ -133,7 +133,7 @@ def test_non_exception_piece_with_weight_unchanged():
         subcategory_name="مقبلات",
     )
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_non_exception_piece_count_unchanged():
@@ -145,35 +145,43 @@ def test_non_exception_piece_count_unchanged():
         subcategory_name="مشروبات غازيه",
     )
     assert unit_id == 7
-    assert quantity == "2"
+    assert quantity == 2
 
 
 def test_finalize_ml_becomes_piece():
     units = _module3_units()
-    unit_id, quantity = finalize_unit_for_export(14, "500", units)
+    unit_id, quantity = finalize_unit_for_export(14, 500, units)
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_finalize_gram_stays():
     units = _module3_units()
-    unit_id, quantity = finalize_unit_for_export(10, "250", units)
+    unit_id, quantity = finalize_unit_for_export(10, 250, units)
     assert unit_id == 10
-    assert quantity == "250"
+    assert quantity == 250
 
 
 def test_finalize_empty_becomes_piece():
     units = _module3_units()
     unit_id, quantity = finalize_unit_for_export(None, None, units)
     assert unit_id == 7
-    assert quantity == "1"
+    assert quantity == 1
 
 
 def test_finalize_piece_keeps_count():
     units = _module3_units()
-    unit_id, quantity = finalize_unit_for_export(7, "2", units)
+    unit_id, quantity = finalize_unit_for_export(7, 2, units)
     assert unit_id == 7
-    assert quantity == "2"
+    assert quantity == 2
+
+
+def test_normalize_quantity_decimal():
+    from pipeline.units_matcher import _normalize_quantity
+
+    assert _normalize_quantity("1.5") == 1.5
+    assert _normalize_quantity("250") == 250
+    assert _normalize_quantity("1.0") == 1
 
 
 def test_match_unit_with_meta_kilogram_high_confidence():
@@ -185,7 +193,7 @@ def test_match_unit_with_meta_kilogram_high_confidence():
         subcategory_name="خضروات",
     )
     assert result.unit_id == 9
-    assert result.quantity_unit == "1"
+    assert result.quantity_unit == 1
     assert result.confidence == "high"
     assert result.reason == "pattern_weight"
 
@@ -199,7 +207,7 @@ def test_match_unit_with_meta_ml_forced_piece_low():
         subcategory_name="ألبان",
     )
     assert result.unit_id == 7
-    assert result.quantity_unit == "1"
+    assert result.quantity_unit == 1
     assert result.confidence == "low"
     assert result.reason == "category_forced_piece"
 

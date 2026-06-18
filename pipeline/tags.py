@@ -147,6 +147,7 @@ def build_search_tags(
     category_name: str = "",
     subcategory_name: str = "",
     source_category: str = "",
+    arabic_only: bool = False,
 ) -> str:
     """بناء كلمات مفتاحية للبحث من اسم المنتج والتصنيف."""
     tags: list[str] = []
@@ -156,7 +157,11 @@ def build_search_tags(
             if not value:
                 continue
             text = str(value).strip()
-            if text and text not in tags:
+            if not text:
+                continue
+            if arabic_only and not _is_arabic_tag(text):
+                continue
+            if text not in tags:
                 tags.append(text)
 
     product_name = normalize_name(product_name)
@@ -169,13 +174,18 @@ def build_search_tags(
     if clean_product and clean_product != product_name:
         add(clean_product)
 
-    add(*_english_variants(product_name))
-    if clean_product:
-        add(*_english_variants(clean_product))
+    if not arabic_only:
+        add(*_english_variants(product_name))
+        if clean_product:
+            add(*_english_variants(clean_product))
 
     add(*_arabic_variants(clean_product or product_name))
 
-    for label in (category_name, subcategory_name, source_category):
+    labels = [category_name, subcategory_name]
+    if not arabic_only or _is_arabic_tag(source_category):
+        labels.append(source_category)
+
+    for label in labels:
         add(label)
         add(*_arabic_variants(label))
 
@@ -192,9 +202,19 @@ def build_search_tags(
     for token in tokens:
         add(token)
 
-    lowered_tokens = [token.lower() for token in tokens]
-    for key, synonyms in COMMON_SYNONYMS.items():
-        if key in lowered_tokens or key in (clean_product or product_name).lower():
-            add(key, *synonyms)
+    if not arabic_only:
+        lowered_tokens = [token.lower() for token in tokens]
+        for key, synonyms in COMMON_SYNONYMS.items():
+            if key in lowered_tokens or key in (clean_product or product_name).lower():
+                add(key, *synonyms)
+    else:
+        lowered_tokens = [token.lower() for token in tokens]
+        for key, synonyms in COMMON_SYNONYMS.items():
+            if key in lowered_tokens or key in (clean_product or product_name).lower():
+                add(*(syn for syn in synonyms if _is_arabic_tag(syn)))
 
     return ", ".join(tags)
+
+
+def _is_arabic_tag(text: str) -> bool:
+    return bool(re.search(r"[\u0600-\u06FF]", text))

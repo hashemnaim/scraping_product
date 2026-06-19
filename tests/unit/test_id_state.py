@@ -39,6 +39,13 @@ def test_rescrape_reuses_id_start(isolated_state):
     assert state["category_ranges"]["2/253/10"]["freed_ids"] == [4, 5]
 
 
+def test_clear_category_resets_to_start_at_one(isolated_state):
+    id_state.allocate("2/253/10", 3, False, "out/a.xlsx", "out/a_img")
+    assert id_state.clear_category("2/253/10") is True
+    r = id_state.allocate("2/253/10", 2, False, "out/a.xlsx", "out/a_img")
+    assert r.ids == [1, 2]
+
+
 def test_new_scrape_blocked_if_exists(isolated_state):
     id_state.allocate("2/253/10", 2, False, "out/a.xlsx", "out/a_img")
     with pytest.raises(PipelineError) as exc:

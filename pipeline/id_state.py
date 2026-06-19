@@ -59,6 +59,30 @@ def save_state(state: dict) -> None:
         json.dump(state, file, ensure_ascii=False, indent=2)
 
 
+def _recalculate_last_used_id(state: dict) -> None:
+    max_end = 0
+    for raw in state.get("category_ranges", {}).values():
+        max_end = max(max_end, int(raw.get("id_end", 0)))
+    state["last_used_id"] = max_end
+
+
+def clear_category(run_key: str) -> bool:
+    """إزالة تسجيل تصنيف ليبدأ السحب التالي من last_used_id + 1 (أو 1 إن لم يبقَ تصنيف)."""
+    state = load_state()
+    ranges: dict = state.setdefault("category_ranges", {})
+    if run_key not in ranges:
+        return False
+    del ranges[run_key]
+    _recalculate_last_used_id(state)
+    save_state(state)
+    return True
+
+
+def reset_all_ids() -> None:
+    """إعادة ضبط كل المعرفات — يبدأ السحب التالي من 1."""
+    save_state(_empty_state())
+
+
 def allocate(
     run_key: str,
     count: int,

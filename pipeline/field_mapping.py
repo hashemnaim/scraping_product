@@ -38,8 +38,14 @@ FIELD_SOURCES: dict[str, dict[str, str]] = {
     "Name": {
         "label_ar": "الاسم",
         "source": FieldSource.SCRAPED.value,
-        "source_ar": "من الموقع بعد تحويله للعربية (أو كما هو إن كان عربياً)",
+        "source_ar": "من الموقع كما هو (عربي من سعودي عبر Store ar_EG)",
         "icon": "🌐",
+    },
+    "Description": {
+        "label_ar": "الوصف",
+        "source": FieldSource.SCRAPED.value,
+        "source_ar": "السعة/الحجم/الوزن المستخرج من الاسم (بالعربية) + أي وصف من الموقع",
+        "icon": "📝",
     },
     "Price": {
         "label_ar": "السعر",

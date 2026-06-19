@@ -25,6 +25,7 @@ import streamlit as st
 
 from pipeline import catalog
 from pipeline.constants import CATALOG_FILES
+from pipeline import id_state
 
 if not is_frozen():
     importlib.reload(catalog)
@@ -790,6 +791,16 @@ with tab_website:
             )
 
         rescrape = st.checkbox("🔄 إعادة سحب — استبدال نفس نطاق المعرفات", value=False)
+        start_from_one = st.checkbox(
+            "🔢 بدء من المعرف 1",
+            value=False,
+            help="يلغي تسجيل هذا التصنيف ويبدأ الترقيم من 1 (استخدمه عند CATEGORY_EXISTS أو لإعادة السحب من الصفر)",
+        )
+        excel_only = st.checkbox(
+            "📄 Excel فقط — بدون تحميل صور",
+            value=False,
+            help="يُصدّر ملف Excel بنفس أسماء المجلدات والصور (product_001.webp) دون تنزيل الصور",
+        )
         apply_category_rules = st.checkbox(
             "🔗 تفعيل قواعد ربط تصنيف الموقع",
             value=False,
@@ -846,6 +857,10 @@ with tab_website:
         ):
             st.session_state.progress_log = []
             try:
+                run_key = catalog.make_run_key(module_id, category_id, sub_category_id)
+                if start_from_one:
+                    id_state.clear_category(run_key)
+                    rescrape = False
                 request = CategoryRunRequest(
                     module_id=module_id,
                     category_id=category_id,
@@ -857,16 +872,24 @@ with tab_website:
                     start_page=start_page,
                     rescrape=rescrape,
                     apply_category_rules=apply_category_rules,
+                    excel_only=excel_only,
                 )
-                with st.spinner("⏳ جاري السحب وتحميل الصور..."):
+                spinner_text = "⏳ جاري السحب وتصدير Excel..." if excel_only else "⏳ جاري السحب وتحميل الصور..."
+                with st.spinner(spinner_text):
                     result = run_category_job(request, on_progress=_progress_log)
                 st.session_state.last_result = result
                 st.session_state.last_maps_result = None
                 st.balloons()
-                st.success(
-                    f"✅ اكتمل — {result.stats['products_total']} منتج | "
-                    f"🖼️ {result.stats['images_ok']} صورة ناجحة"
-                )
+                if result.stats.get("excel_only"):
+                    st.success(
+                        f"✅ اكتمل — {result.stats['products_total']} منتج | "
+                        f"📄 Excel فقط (بدون صور)"
+                    )
+                else:
+                    st.success(
+                        f"✅ اكتمل — {result.stats['products_total']} منتج | "
+                        f"🖼️ {result.stats['images_ok']} صورة ناجحة"
+                    )
             except PipelineError as exc:
                 st.error(f"❌ {exc.code}: {exc}")
             except Exception as exc:
@@ -996,8 +1019,12 @@ if st.session_state.last_result:
 
     s1, s2, s3, s4 = st.columns(4)
     s1.metric("المنتجات", r.stats.get("products_total", 0))
-    s2.metric("صور ناجحة", r.stats.get("images_ok", 0))
-    s3.metric("صور فاشلة", r.stats.get("images_failed", 0))
+    if r.stats.get("excel_only"):
+        s2.metric("الوضع", "Excel فقط")
+        s3.metric("صور", "—")
+    else:
+        s2.metric("صور ناجحة", r.stats.get("images_ok", 0))
+        s3.metric("صور فاشلة", r.stats.get("images_failed", 0))
     id_start = r.id_range.get("start", "—")
     id_end = r.id_range.get("end", "—")
     s4.metric("نطاق Id", f"{id_start} → {id_end}")

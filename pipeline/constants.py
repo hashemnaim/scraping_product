@@ -26,7 +26,7 @@ IMPORT_DEFAULTS = {
     "AddOns": "",
     "Attributes": "",
     "Tags": "",
-    "StoreId": "",
+    "StoreId": None,
     "ModuleId": "1",
     "Status": 1,
     "Veg": 0,

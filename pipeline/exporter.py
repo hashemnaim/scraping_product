@@ -34,7 +34,7 @@ def build_row(
         quantity_unit = defaults.get("QuantityUnit")
 
     return {
-        "Id": product_id,
+        "Id": "",
         "Name": product.get("name", ""),
         "Description": product.get("description", ""),
         "Image": image_path,
@@ -53,7 +53,7 @@ def build_row(
         "AddOns": defaults.get("AddOns", ""),
         "Attributes": defaults.get("Attributes", ""),
         "Tags": tags,
-        "StoreId": defaults.get("StoreId", ""),
+        "StoreId": defaults.get("StoreId"),
         "ModuleId": module_id,
         "Status": defaults.get("Status", 1),
         "Veg": defaults.get("Veg", 0),

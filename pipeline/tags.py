@@ -53,11 +53,13 @@ def _with_al(word: str) -> str | None:
     return f"ال{word}"
 
 
+from pipeline.tags import normalize_name
+
+from pipeline.name_parser import strip_size_from_name
+
+
 def _strip_unit_suffixes(name: str) -> str:
-    cleaned = normalize_name(name)
-    for pattern in UNIT_SUFFIX_PATTERNS:
-        cleaned = pattern.sub("", cleaned)
-    return re.sub(r"\s+", " ", cleaned).strip(" -–")
+    return strip_size_from_name(name)
 
 
 def _english_variants(name: str) -> list[str]:

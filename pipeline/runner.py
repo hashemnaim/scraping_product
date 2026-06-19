@@ -24,7 +24,8 @@ from pipeline.category_rules import resolve_subcategory
 from pipeline.match_types import FieldEnrichment, WarningFlag
 from pipeline.review_report import build_review_report
 from pipeline.run_history import append_run_log
-from pipeline.arabic_localizer import contains_arabic, localize_product_name
+from pipeline.arabic_localizer import contains_arabic
+from pipeline.name_parser import split_name_and_size
 from pipeline.tags import build_search_tags
 from pipeline.units_matcher import match_unit_with_meta
 from pipeline.errors import SCRAPE_FAILED, PipelineError
@@ -49,6 +50,7 @@ class CategoryRunRequest:
     rescrape: bool = False
     mode: str = "auto"
     apply_category_rules: bool = False
+    excel_only: bool = False
 
 
 @dataclass
@@ -97,9 +99,10 @@ def run_category_job(
     excel_path = output_base / excel_filename
     images_folder_name = images.images_folder_from_excel(excel_filename)
     images_dir = output_base / images_folder_name
-    images_dir.mkdir(parents=True, exist_ok=True)
+    if not request.excel_only:
+        images_dir.mkdir(parents=True, exist_ok=True)
 
-    if request.rescrape:
+    if request.rescrape and not request.excel_only:
         existing = id_state.get_category_range(run_key)
         if existing:
             images.remove_images_in_range(
@@ -138,24 +141,28 @@ def run_category_job(
     enrichments: list[FieldEnrichment] = []
 
     for index, (product_id, product) in enumerate(zip(id_range.ids, raw_products)):
-        progress("images", index + 1, len(raw_products), product.get("name", "")[:40])
-        image_path = images_dir / images.image_filename(product_id)
-        ok, saved = images.download_product_image(
-            product.get("image_url", ""), image_path, session
-        )
-        rel_path = ""
-        if ok:
-            images_ok += 1
-            bytes_saved += saved
-            rel_path = images.image_relative_path(images_folder_name, product_id)
+        rel_path = images.image_relative_path(images_folder_name, product_id)
+        if request.excel_only:
+            progress("excel", index + 1, len(raw_products), product.get("name", "")[:40])
             product["image_ok"] = True
+            product["image_path"] = rel_path
         else:
-            images_failed += 1
-            product["image_ok"] = False
-
-        product["image_path"] = rel_path
+            progress("images", index + 1, len(raw_products), product.get("name", "")[:40])
+            image_path = images_dir / images.image_filename(product_id)
+            ok, saved = images.download_product_image(
+                product.get("image_url", ""), image_path, session
+            )
+            if ok:
+                images_ok += 1
+                bytes_saved += saved
+                product["image_ok"] = True
+            else:
+                images_failed += 1
+                product["image_ok"] = False
+            product["image_path"] = rel_path if ok else ""
 
         source_name = product.get("name", "")
+        clean_source_name, size_text = split_name_and_size(source_name)
         unit_match = match_unit_with_meta(
             source_name,
             module_units,
@@ -164,11 +171,18 @@ def run_category_job(
         )
         brand_match = match_brand_with_meta(source_name, request.module_id)
 
-        arabic_name = localize_product_name(source_name)
-        product["name"] = arabic_name
+        display_name = clean_source_name or source_name
+        product["name"] = display_name
+
+        scraped_description = (product.get("description") or "").strip()
+        if size_text:
+            if scraped_description and scraped_description != size_text:
+                product["description"] = f"{size_text} | {scraped_description}"
+            else:
+                product["description"] = size_text
         source_category = product.get("category", "")
         product["tags"] = build_search_tags(
-            product_name=arabic_name,
+            product_name=display_name,
             category_name=category_name,
             subcategory_name=sub.name_ar,
             source_category=source_category if contains_arabic(source_category) else "",
@@ -198,7 +212,7 @@ def run_category_job(
         enrichments.append(
             FieldEnrichment(
                 product_id=product_id,
-                product_name=arabic_name,
+                product_name=display_name,
                 unit=unit_match,
                 brand=brand_match,
                 warnings=rule_warnings,
@@ -224,7 +238,7 @@ def run_category_job(
 
     exporter.write_excel(rows, excel_path)
 
-    if request.rescrape and id_range.ids:
+    if request.rescrape and id_range.ids and not request.excel_only:
         keep_ids = set(id_range.ids)
         backup = Path(str(images_dir) + "_removed")
         images.move_orphan_images_to_backup(images_dir, keep_ids, backup)
@@ -237,6 +251,7 @@ def run_category_job(
             "category_id": request.category_id,
             "sub_category_id": request.sub_category_id,
             "apply_category_rules": request.apply_category_rules,
+            "excel_only": request.excel_only,
             "products_total": len(raw_products),
             "warning_counts": review_report.get("counts", {}),
             "excel_path": str(excel_path),
@@ -254,6 +269,7 @@ def run_category_job(
             "images_ok": images_ok,
             "images_failed": images_failed,
             "bytes_saved": bytes_saved,
+            "excel_only": request.excel_only,
         },
         review_report=review_report,
         mapping_stats=mapping_stats,

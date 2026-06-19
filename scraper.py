@@ -31,6 +31,11 @@ def main():
     )
     parser.add_argument("--rescrape", action="store_true", help="إعادة سحب بنفس نطاق المعرفات")
     parser.add_argument(
+        "--excel-only",
+        action="store_true",
+        help="تصدير Excel فقط بدون تحميل الصور",
+    )
+    parser.add_argument(
         "--apply-category-rules",
         action="store_true",
         help="تطبيق catalog/category_mapping_rules.xlsx على SubCategoryId",
@@ -54,6 +59,7 @@ def main():
         rescrape=args.rescrape,
         mode=args.mode,
         apply_category_rules=args.apply_category_rules,
+        excel_only=args.excel_only,
     )
 
     def on_progress(phase, current, total, message):

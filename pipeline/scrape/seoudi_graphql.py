@@ -81,12 +81,19 @@ def _throttle():
     time.sleep(random.uniform(delay * 0.8, delay * 1.2))
 
 
-def _graphql_request(session, query, variables):
+def _graphql_headers(locale: str = "ar") -> dict:
+    headers = {**HEADERS, "Content-Type": "application/json"}
+    if locale == "ar":
+        headers["Store"] = "ar_EG"
+    return headers
+
+
+def _graphql_request(session, query, variables, locale: str = "ar"):
     _throttle()
     response = session.post(
         SCRAPE_SETTINGS["graphql_endpoint"],
         json={"query": query, "variables": variables},
-        headers={**HEADERS, "Content-Type": "application/json"},
+        headers=_graphql_headers(locale),
         timeout=20,
     )
     response.raise_for_status()
@@ -136,13 +143,16 @@ def _pick_category_by_url_key(categories: list[dict], category_path: str) -> dic
     return max(categories, key=score)
 
 
-def resolve_graphql_category_path(session: requests.Session, category_path: str) -> str:
+def resolve_graphql_category_path(
+    session: requests.Session, category_path: str, locale: str = "ar"
+) -> str:
     """حل مسار الفئة من رابط الموقع إلى url_path الفعلي في GraphQL."""
     url_key = category_path.rsplit("/", 1)[-1]
     data = _graphql_request(
         session,
         CATEGORY_RESOLVE_QUERY,
         {"urlPath": category_path, "urlKey": url_key},
+        locale=locale,
     )
     by_path = data.get("byPath") or []
     if by_path and (by_path[0].get("products") or {}).get("total_count", 0) > 0:
@@ -164,11 +174,11 @@ def _upgrade_image_url(url: str) -> str:
     return re.sub(r"/media/catalog/product/cache/[^/]+/", "/media/catalog/product/", url)
 
 
-def _fetch_description(session, sku: str) -> str:
+def _fetch_description(session, sku: str, locale: str = "ar") -> str:
     if not SCRAPE_SETTINGS["fetch_descriptions"] or not sku:
         return ""
     try:
-        data = _graphql_request(session, PRODUCT_DETAIL_QUERY, {"sku": sku})
+        data = _graphql_request(session, PRODUCT_DETAIL_QUERY, {"sku": sku}, locale=locale)
         items = data.get("products", {}).get("items", [])
         if not items:
             return ""
@@ -188,7 +198,7 @@ def scrape_seoudi_category(
     start_page: int | None = None,
 ) -> list[dict]:
     locale, category_path, url_start_page = parse_seoudi_url(url)
-    graphql_category_path = resolve_graphql_category_path(session, category_path)
+    graphql_category_path = resolve_graphql_category_path(session, category_path, locale)
     base_url = f"https://seoudisupermarket.com/{locale}"
     products = []
     pages_fetched = 0
@@ -208,6 +218,7 @@ def scrape_seoudi_category(
                 "pageSize": SCRAPE_SETTINGS["graphql_page_size"],
                 "currentPage": current_page,
             },
+            locale=locale,
         )
         categories = data.get("categoryList") or []
         if not categories:
@@ -233,7 +244,7 @@ def scrape_seoudi_category(
                     "name": item.get("name", ""),
                     "price": str(price_value) if price_value != "" else "",
                     "category": category_name,
-                    "description": _fetch_description(session, sku),
+                    "description": _fetch_description(session, sku, locale),
                     "sku": sku,
                     "image_url": _upgrade_image_url((item.get("image") or {}).get("url", "")),
                     "product_url": f"{base_url}/{url_key}" if url_key else "",

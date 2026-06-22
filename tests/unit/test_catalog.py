@@ -32,6 +32,22 @@ def test_module_1_fruit_categories():
     assert ids == {252, 253, 254, 255}
 
 
+def test_module_1_flat_category_run_target():
+    assert catalog.module_uses_flat_categories(1)
+    assert not catalog.module_uses_flat_categories(3)
+    sub = catalog.resolve_run_target(1, 253)
+    assert sub.sub_category_id == 253
+    assert sub.name_ar == "فاكهة"
+    assert sub.output_slug == "fakh"
+    assert sub.excel_filename == "fakh.xlsx"
+
+
+def test_module_1_has_six_units():
+    units = catalog.get_units(1)
+    assert len(units) == 6
+    assert {u.unit_id for u in units} == {7, 9, 10, 11, 13, 14}
+
+
 def test_require_units_raises_when_empty(monkeypatch, tmp_path):
     cat = tmp_path / "catalog"
     cat.mkdir()

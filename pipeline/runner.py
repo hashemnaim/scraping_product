@@ -12,12 +12,12 @@ import requests
 from pipeline import catalog, exporter, id_state, images
 from pipeline.catalog import (
     get_module,
-    get_subcategory,
     get_units,
     list_categories,
     load_category_mapping_rules,
     make_run_key,
     require_units,
+    resolve_run_target,
 )
 from pipeline.brand_matcher import match_brand_with_meta
 from pipeline.category_rules import resolve_subcategory
@@ -77,7 +77,11 @@ def run_category_job(
     progress = on_progress or _default_progress
 
     get_module(request.module_id)
-    sub = get_subcategory(request.module_id, request.category_id, request.sub_category_id)
+    sub = resolve_run_target(
+        request.module_id,
+        request.category_id,
+        request.sub_category_id,
+    )
     require_units(request.module_id)
     module = get_module(request.module_id)
     module_units = get_units(request.module_id)

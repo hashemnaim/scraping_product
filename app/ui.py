@@ -701,27 +701,41 @@ with tab_website:
         )
 
         subcategories = catalog.list_subcategories(module_id, category_id)
-        if not subcategories:
-            st.warning(
-                f"لا توجد تصنيفات فرعية للتصنيف {category_id} — أضف صفاً في `subcategories.xlsx`"
+        flat_categories = catalog.module_uses_flat_categories(module_id)
+
+        if flat_categories:
+            selected_category = next(c for c in categories if c.category_id == category_id)
+            sub = catalog.category_as_run_target(selected_category)
+            sub_category_id = category_id
+            sub_labels = {category_id: category_labels[category_id]}
+            st.caption("هذا الموديل يستخدم التصنيف الرئيسي فقط — بدون تصنيف فرعي.")
+        else:
+            if not subcategories:
+                st.warning(
+                    f"لا توجد تصنيفات فرعية للتصنيف {category_id} — أضف صفاً في `subcategories.xlsx`"
+                )
+                st.stop()
+
+            sub_labels = {s.sub_category_id: s.name_ar for s in subcategories}
+            sub_category_id = st.selectbox(
+                "التصنيف الفرعي",
+                options=[s.sub_category_id for s in subcategories],
+                format_func=lambda sid: f"{sid} — {sub_labels[sid]}",
             )
-            st.stop()
+            sub = catalog.get_subcategory(module_id, category_id, sub_category_id)
 
-        sub_labels = {s.sub_category_id: s.name_ar for s in subcategories}
-        sub_category_id = st.selectbox(
-            "التصنيف الفرعي",
-            options=[s.sub_category_id for s in subcategories],
-            format_func=lambda sid: f"{sid} — {sub_labels[sid]}",
-        )
-
-        sub = catalog.get_subcategory(module_id, category_id, sub_category_id)
         units = catalog.get_units(module_id)
 
         st.markdown("**المعرفات المُعبَّأة تلقائياً**")
-        m3, m2, m1 = st.columns(3)
-        m3.metric("ModuleId", module_id)
-        m2.metric("CategoryId", category_id)
-        m1.metric("SubCategoryId", sub_category_id)
+        if flat_categories:
+            m3, m2 = st.columns(2)
+            m3.metric("ModuleId", module_id)
+            m2.metric("CategoryId", category_id)
+        else:
+            m3, m2, m1 = st.columns(3)
+            m3.metric("ModuleId", module_id)
+            m2.metric("CategoryId", category_id)
+            m1.metric("SubCategoryId", sub_category_id)
 
         if units:
             with st.expander(f"📐 وحدات الموديل ({len(units)})", expanded=False):

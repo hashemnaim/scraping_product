@@ -857,6 +857,55 @@ def list_subcategories(module_id: int, category_id: int) -> list[SubCategory]:
     return []
 
 
+def get_category(module_id: int, category_id: int) -> Category:
+    for category in list_categories(module_id):
+        if category.category_id == category_id:
+            return category
+    raise PipelineError(
+        CATALOG_INVALID,
+        f"التصنيف {category_id} غير موجود للموديل {module_id}",
+    )
+
+
+def module_uses_flat_categories(module_id: int) -> bool:
+    """موديل بدون تصنيفات فرعية — التصنيف الرئيسي يكفي للسحب."""
+    categories = list_categories(module_id)
+    return bool(categories) and all(not cat.subcategories for cat in categories)
+
+
+def category_as_run_target(category: Category) -> SubCategory:
+    """حوّل تصنيفاً رئيسياً (بدون فرعي) إلى هدف سحب."""
+    seed = _seed_category_meta().get(category.category_id, {})
+    slug = _slug_or_default(_cell_str(seed.get("slug", "")), category.category_id)
+    return SubCategory(
+        category.category_id,
+        category.name_ar,
+        category.category_id,
+        category.module_id,
+        "",
+        slug,
+        f"{slug}.xlsx",
+        "product_images",
+    )
+
+
+def resolve_run_target(
+    module_id: int,
+    category_id: int,
+    sub_category_id: int | None = None,
+) -> SubCategory:
+    """يُرجع هدف السحب — فرعي إن وُجد، وإلا التصنيف الرئيسي."""
+    subs = list_subcategories(module_id, category_id)
+    if subs:
+        if sub_category_id is None:
+            raise PipelineError(
+                CATALOG_INVALID,
+                f"اختر تصنيفاً فرعياً للموديل {module_id}",
+            )
+        return get_subcategory(module_id, category_id, sub_category_id)
+    return category_as_run_target(get_category(module_id, category_id))
+
+
 def get_subcategory(module_id: int, category_id: int, sub_category_id: int) -> SubCategory:
     for sub in list_subcategories(module_id, category_id):
         if sub.sub_category_id == sub_category_id:

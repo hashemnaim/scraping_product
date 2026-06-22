@@ -78,6 +78,42 @@
       "module_id": 3,
       "unit": "ml",
       "aliases": "ml,مل,milliliter,millilitre"
+    },
+    {
+      "id": 7,
+      "module_id": 1,
+      "unit": "قطعه",
+      "aliases": "piece,pieces,pc,pcs,قطعة,حبة,بالقطعة"
+    },
+    {
+      "id": 9,
+      "module_id": 1,
+      "unit": "كيلو",
+      "aliases": "kg,kilo,kilogram,كجم,كيلو"
+    },
+    {
+      "id": 10,
+      "module_id": 1,
+      "unit": "غرام",
+      "aliases": "g,gram,grams,gr,جم,غرام"
+    },
+    {
+      "id": 11,
+      "module_id": 1,
+      "unit": "فرط",
+      "aliases": "فرط,bunch"
+    },
+    {
+      "id": 13,
+      "module_id": 1,
+      "unit": "حزمة",
+      "aliases": "حزمة,pack,bundle"
+    },
+    {
+      "id": 14,
+      "module_id": 1,
+      "unit": "ml",
+      "aliases": "ml,مل,milliliter,millilitre"
     }
   ],
 
